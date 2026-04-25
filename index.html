@@ -390,10 +390,10 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
     <div class="link-row">
       <input id="share-link" type="text" readonly placeholder="Đang tạo link..."/>
       <button class="btn-copy" id="btn-copy">Sao chép</button>
+    </div>
       <button class="btn-primary" id="btn-save-share" style="margin-top:5px">Cập nhật link</button>
       <div class="modal-foot">
       <button class="btn-ghost" id="btn-modal-close">Đóng</button>
-    </div>
     </div>
     </div>
 
@@ -633,18 +633,15 @@ document.getElementById('note-title-inp').addEventListener('input', triggerSave)
 document.getElementById('editor').addEventListener('input', triggerSave);
 
 // TOOLBAR
-document.querySelectorAll('.tb-btn[data-cmd]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const cmd = btn.dataset.cmd;
-    document.getElementById('editor').focus();
-    if (['h1','h2','h3'].includes(cmd)) document.execCommand('formatBlock', false, cmd);
-    else if (cmd === 'blockquote') document.execCommand('formatBlock', false, 'blockquote');
-    else if (cmd === 'link') { const u = prompt('Nhập URL:'); if(u) document.execCommand('createLink', false, u); }
-    else document.execCommand(cmd, false, null);
-    triggerSave();
+document.querySelectorAll('.perm-opt').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    document.querySelectorAll('.perm-opt').forEach(b => b.classList.remove('sel'));
+    btn.classList.add('sel');
+    sharePerm = btn.dataset.perm;
+    document.getElementById('share-link').value = 'Đang tạo link...';
+    await genShareLink(true); // <-- Sửa ở đây: Thêm tham số true
   });
 });
-
 // PASTE IMAGE
 function setupPaste(el) {
   el.addEventListener('paste', async e => {
