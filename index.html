@@ -415,10 +415,7 @@ async function api(payload) {
 }
 
 // SHA256
-async function sha256(msg) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-}
+
 
 // TOAST
 let _tt;
@@ -484,20 +481,26 @@ const token = new URLSearchParams(location.search).get('n'); // Đổi thành 'n
 }
 
 // LOGIN
+// LOGIN
 async function doLogin() {
   const user  = document.getElementById('inp-user').value.trim();
-  const pass  = document.getElementById('inp-pass').value;
+  const pass  = document.getElementById('inp-pass').value; // Lấy mật khẩu gốc
   const errEl = document.getElementById('login-err');
   const btn   = document.getElementById('btn-login');
+  
   if (!user || !pass) { errEl.textContent = 'Vui lòng nhập đầy đủ.'; return; }
+  
   btn.textContent = 'Đang xác thực...'; btn.disabled = true; errEl.textContent = '';
+  
   try {
-    const hash = await sha256(pass);
-    const res = await api({ action: 'login', username: user, passwordHash: hash });
+    // Gửi trực tiếp pass lên server, KHÔNG dùng biến hash nữa
+    const res = await api({ action: 'login', username: user, passwordHash: pass });
+    
     if (!res.success) {
       errEl.textContent = 'Sai tài khoản hoặc mật khẩu.';
       btn.textContent = 'Đăng nhập'; btn.disabled = false; return;
     }
+    
     sessionStorage.setItem('gn_auth', '1');
     showApp();
   } catch(e) {
