@@ -1,447 +1,369 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>GitNote</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Fraunces:ital,wght@0,300;0,600;1,300&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:        #0d0f12;
-  --surface:   #13161b;
-  --surface2:  #1a1e26;
-  --border:    #252a35;
-  --accent:    #4f8fff;
-  --accent2:   #7c6dfa;
-  --text:      #e2e8f0;
-  --text-muted:#6b7585;
-  --danger:    #ff5f5f;
-  --success:   #3ecf8e;
-  --mono:      'JetBrains Mono', monospace;
-  --sans:      'Syne', sans-serif;
+  --bg:         #0e0f11;
+  --surface:    #141618;
+  --surface2:   #1c1f23;
+  --surface3:   #23272e;
+  --border:     #2a2f38;
+  --border2:    #353c48;
+  --accent:     #5b9cf6;
+  --accent-dim: rgba(91,156,246,.12);
+  --green:      #4ade80;
+  --amber:      #fbbf24;
+  --red:        #f87171;
+  --text:       #dde3ed;
+  --text-2:     #8b95a6;
+  --text-3:     #4e5765;
+  --mono:       'IBM Plex Mono', monospace;
+  --serif:      'Fraunces', serif;
+  --radius:     10px;
+  --sidebar-w:  272px;
 }
-
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body { background: var(--bg); color: var(--text); font-family: var(--mono); font-size: 14px; line-height: 1.6; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 10px; }
 
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--sans);
-  height: 100vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-/* ─── LOGIN ─────────────────────────────────── */
+/* LOGIN */
 #login-screen {
-  position: fixed; inset: 0;
-  background: var(--bg);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 100;
-  flex-direction: column;
-  gap: 0;
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; align-items: center; justify-content: center; z-index: 999;
 }
-.login-box {
-  width: 360px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 40px 36px;
-  display: flex; flex-direction: column; gap: 20px;
-  box-shadow: 0 0 60px rgba(79,143,255,.08);
+.login-wrap { width: 400px; animation: fadeUp .4s ease; }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-.login-logo {
-  font-size: 22px; font-weight: 700; letter-spacing: -0.5px;
-  color: var(--text);
-  margin-bottom: 4px;
-}
-.login-logo span { color: var(--accent); }
-.login-box label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
-.login-box input {
-  width: 100%; padding: 10px 14px;
-  background: var(--bg); border: 1px solid var(--border);
-  border-radius: 8px; color: var(--text);
-  font-family: var(--mono); font-size: 14px;
-  outline: none; transition: border .2s;
-  margin-top: 6px;
-}
-.login-box input:focus { border-color: var(--accent); }
-.login-field { display: flex; flex-direction: column; }
-.btn-login {
-  background: var(--accent); color: #fff;
-  border: none; border-radius: 8px;
-  padding: 12px; font-family: var(--sans);
-  font-size: 14px; font-weight: 600;
-  cursor: pointer; transition: opacity .2s;
-  letter-spacing: .5px;
-}
-.btn-login:hover { opacity: .85; }
-.login-error { color: var(--danger); font-size: 13px; text-align: center; min-height: 16px; }
-
-/* ─── SHARE VIEW ─────────────────────────────── */
-#share-screen {
-  display: none; flex-direction: column; height: 100vh;
-  padding: 0;
-}
-.share-header {
-  padding: 14px 28px;
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; gap: 12px;
-  background: var(--surface);
-}
-.share-logo { font-size: 16px; font-weight: 700; }
-.share-logo span { color: var(--accent); }
-.share-badge {
-  font-size: 11px; padding: 3px 10px;
-  border-radius: 20px; font-family: var(--mono);
-  background: var(--surface2); border: 1px solid var(--border);
-  color: var(--text-muted);
-}
-.share-badge.edit { border-color: var(--accent2); color: var(--accent2); }
-#share-content { flex: 1; overflow-y: auto; padding: 40px 60px; max-width: 860px; margin: 0 auto; width: 100%; }
-
-/* ─── MAIN APP ───────────────────────────────── */
-#app {
-  display: none; flex-direction: column; height: 100vh;
-}
-
-/* Top bar */
-.topbar {
-  height: 52px; min-height: 52px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; padding: 0 16px;
-  gap: 12px;
-}
-.topbar-logo { font-size: 16px; font-weight: 700; flex: 1; }
-.topbar-logo span { color: var(--accent); }
-.topbar-btn {
-  background: none; border: 1px solid var(--border);
-  color: var(--text-muted); border-radius: 7px;
-  padding: 6px 14px; font-size: 12px; font-family: var(--sans);
-  cursor: pointer; transition: all .2s; display: flex; align-items: center; gap: 6px;
-}
-.topbar-btn:hover { border-color: var(--accent); color: var(--accent); }
-.topbar-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
-
-/* Layout */
-.workspace { display: flex; flex: 1; overflow: hidden; }
-
-/* Sidebar */
-#sidebar {
-  width: 260px; min-width: 260px;
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-  display: flex; flex-direction: column;
-  overflow: hidden;
-}
-.sidebar-head {
-  padding: 14px 14px 10px;
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; gap: 8px;
-}
-.sidebar-head input {
-  flex: 1; background: var(--bg);
-  border: 1px solid var(--border); border-radius: 7px;
-  padding: 7px 11px; color: var(--text);
-  font-family: var(--mono); font-size: 12px; outline: none;
-  transition: border .2s;
-}
-.sidebar-head input:focus { border-color: var(--accent); }
-.btn-new {
-  background: var(--accent); border: none;
-  color: #fff; border-radius: 7px;
-  width: 32px; height: 32px; font-size: 20px;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; transition: opacity .2s;
-}
-.btn-new:hover { opacity: .8; }
-
-#note-list {
-  flex: 1; overflow-y: auto; padding: 8px 6px;
-}
-#note-list::-webkit-scrollbar { width: 4px; }
-#note-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-
-.note-item {
-  padding: 10px 12px; border-radius: 8px;
-  cursor: pointer; transition: background .15s;
-  display: flex; align-items: flex-start; gap: 8px;
-  position: relative;
-}
-.note-item:hover { background: var(--surface2); }
-.note-item.active { background: var(--surface2); border-left: 2px solid var(--accent); padding-left: 10px; }
-.note-item-body { flex: 1; min-width: 0; }
-.note-item-title {
-  font-size: 13px; font-weight: 600;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  color: var(--text);
-}
-.note-item-date { font-size: 11px; color: var(--text-muted); font-family: var(--mono); margin-top: 2px; }
-.note-item-del {
-  opacity: 0; background: none; border: none;
-  color: var(--danger); cursor: pointer; font-size: 14px;
-  padding: 2px 4px; border-radius: 4px; flex-shrink: 0;
-  transition: opacity .2s;
-}
-.note-item:hover .note-item-del { opacity: 1; }
-.note-item-del:hover { background: rgba(255,95,95,.12); }
-
-/* Editor area */
-#editor-area {
-  flex: 1; display: flex; flex-direction: column; overflow: hidden;
-}
-.editor-toolbar {
-  padding: 8px 16px;
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; gap: 4px;
-  background: var(--surface); flex-wrap: wrap;
-}
-.tb-btn {
-  background: none; border: none; color: var(--text-muted);
-  width: 30px; height: 28px; border-radius: 5px;
-  cursor: pointer; font-size: 13px; font-family: var(--mono);
-  display: flex; align-items: center; justify-content: center;
-  transition: all .15s;
-}
-.tb-btn:hover { background: var(--surface2); color: var(--text); }
-.tb-btn.active { background: var(--surface2); color: var(--accent); }
-.tb-sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
-.tb-title {
-  flex: 1; background: none; border: none;
-  color: var(--text); font-family: var(--sans);
-  font-size: 15px; font-weight: 600; outline: none;
-  min-width: 0; padding: 4px 8px;
-}
-.tb-title::placeholder { color: var(--text-muted); }
-.tb-right { margin-left: auto; display: flex; gap: 6px; align-items: center; }
-
-.btn-share {
-  background: none; border: 1px solid var(--border);
-  color: var(--text-muted); border-radius: 7px;
-  padding: 5px 12px; font-size: 12px; font-family: var(--sans);
-  cursor: pointer; transition: all .2s; display: flex; align-items: center; gap: 5px;
-}
-.btn-share:hover { border-color: var(--accent2); color: var(--accent2); }
-
-.save-status {
-  font-size: 11px; font-family: var(--mono);
-  color: var(--text-muted); padding: 0 4px;
-}
-.save-status.saving { color: var(--accent); }
-.save-status.saved { color: var(--success); }
-
-/* Content editable */
-#editor-wrap {
-  flex: 1; overflow-y: auto; padding: 32px 60px;
-}
-#editor-wrap::-webkit-scrollbar { width: 5px; }
-#editor-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-
-#editor {
-  min-height: 100%;
-  max-width: 760px;
-  margin: 0 auto;
-  outline: none;
-  font-family: var(--mono); font-size: 14px; line-height: 1.8;
-  color: var(--text);
-}
-#editor:empty::before {
-  content: 'Bắt đầu ghi chú...';
-  color: var(--text-muted);
-  pointer-events: none;
-}
-#editor img {
-  max-width: 100%; border-radius: 8px;
-  border: 1px solid var(--border); margin: 8px 0; display: block;
-}
-#editor h1 { font-size: 24px; margin: 16px 0 8px; font-family: var(--sans); }
-#editor h2 { font-size: 19px; margin: 14px 0 6px; font-family: var(--sans); }
-#editor h3 { font-size: 15px; margin: 12px 0 4px; font-family: var(--sans); }
-#editor ul, #editor ol { padding-left: 22px; margin: 6px 0; }
-#editor li { margin: 3px 0; }
-#editor blockquote {
-  border-left: 3px solid var(--accent);
-  padding: 4px 16px; color: var(--text-muted);
-  margin: 8px 0; font-style: italic;
-}
-#editor code {
-  background: var(--surface2); padding: 2px 6px;
-  border-radius: 4px; font-size: 13px;
-}
-#editor a { color: var(--accent); }
-#editor hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
-
-/* No note selected */
-#empty-state {
-  flex: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  color: var(--text-muted); gap: 10px;
-}
-.empty-icon { font-size: 48px; opacity: .3; }
-.empty-text { font-size: 14px; }
-
-/* ─── SHARE MODAL ─────────────────────────────── */
-.modal-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,.6); backdrop-filter: blur(4px);
-  z-index: 200; display: none;
-  align-items: center; justify-content: center;
-}
-.modal-overlay.open { display: flex; }
-.modal {
+.login-header { margin-bottom: 32px; }
+.login-logo { font-family: var(--serif); font-size: 28px; font-weight: 300; color: var(--text); letter-spacing: -0.5px; }
+.login-logo em { font-style: italic; color: var(--accent); }
+.login-sub { font-size: 12px; color: var(--text-3); margin-top: 6px; }
+.login-card {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 14px; padding: 28px;
-  width: 420px; display: flex; flex-direction: column; gap: 18px;
-  box-shadow: 0 20px 60px rgba(0,0,0,.5);
+  display: flex; flex-direction: column; gap: 16px;
 }
-.modal h3 { font-size: 16px; font-weight: 700; }
-.modal-desc { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
-.perm-options { display: flex; gap: 10px; }
-.perm-btn {
-  flex: 1; padding: 10px;
-  background: var(--bg); border: 1px solid var(--border);
-  border-radius: 8px; color: var(--text-muted);
-  font-family: var(--sans); font-size: 13px; cursor: pointer;
-  transition: all .2s; text-align: center;
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 1.2px; }
+.field input {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 14px; color: var(--text); font-family: var(--mono); font-size: 13px;
+  outline: none; transition: border-color .15s; width: 100%;
 }
-.perm-btn.selected { border-color: var(--accent); color: var(--accent); background: rgba(79,143,255,.08); }
-.share-link-box {
-  display: flex; gap: 8px;
+.field input:focus { border-color: var(--accent); }
+.field input::placeholder { color: var(--text-3); }
+.btn-primary {
+  background: var(--accent); color: #fff; border: none; border-radius: 8px;
+  padding: 12px; font-family: var(--mono); font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: opacity .15s, transform .1s; width: 100%;
 }
-.share-link-box input {
-  flex: 1; background: var(--bg);
-  border: 1px solid var(--border); border-radius: 7px;
-  padding: 9px 12px; color: var(--text-muted);
-  font-family: var(--mono); font-size: 12px; outline: none;
+.btn-primary:hover { opacity: .88; }
+.btn-primary:active { transform: scale(.99); }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+.login-err { font-size: 12px; color: var(--red); min-height: 16px; text-align: center; }
+
+/* SHARE SCREEN */
+#share-screen { display: none; flex-direction: column; height: 100vh; }
+.share-bar {
+  height: 50px; background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 24px; gap: 12px; flex-shrink: 0;
+}
+.share-logo { font-family: var(--serif); font-size: 17px; font-weight: 300; font-style: italic; color: var(--accent); }
+.share-pill { font-size: 11px; padding: 3px 10px; border-radius: 20px; border: 1px solid var(--border2); color: var(--text-2); }
+.share-pill.edit { border-color: var(--amber); color: var(--amber); }
+.share-body { flex: 1; overflow-y: auto; padding: 48px 24px; max-width: 800px; margin: 0 auto; width: 100%; }
+
+/* APP */
+#app { display: none; height: 100vh; flex-direction: column; }
+.topbar {
+  height: 50px; background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 16px; gap: 10px; flex-shrink: 0;
+}
+.topbar-logo { font-family: var(--serif); font-size: 18px; font-weight: 300; font-style: italic; color: var(--accent); margin-right: auto; }
+.icon-btn {
+  background: none; border: 1px solid transparent; color: var(--text-2);
+  border-radius: 7px; padding: 5px 12px; font-family: var(--mono); font-size: 12px;
+  cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 6px;
+}
+.icon-btn:hover { border-color: var(--border2); color: var(--text); }
+.icon-btn.danger:hover { border-color: var(--red); color: var(--red); }
+.workspace { display: flex; flex: 1; overflow: hidden; }
+
+/* SIDEBAR */
+#sidebar {
+  width: var(--sidebar-w); min-width: var(--sidebar-w);
+  background: var(--surface); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.sidebar-top {
+  padding: 12px 10px; border-bottom: 1px solid var(--border);
+  display: flex; gap: 8px; align-items: center;
+}
+.search-wrap { flex: 1; position: relative; }
+.search-wrap input {
+  width: 100%; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 7px; padding: 7px 10px 7px 30px; color: var(--text);
+  font-family: var(--mono); font-size: 12px; outline: none; transition: border-color .15s;
+}
+.search-wrap input:focus { border-color: var(--border2); }
+.search-wrap input::placeholder { color: var(--text-3); }
+.search-icon {
+  position: absolute; left: 9px; top: 50%; transform: translateY(-50%);
+  color: var(--text-3); font-size: 13px; pointer-events: none;
+}
+.btn-new-note {
+  background: var(--accent-dim); border: 1px solid rgba(91,156,246,.3); color: var(--accent);
+  border-radius: 7px; width: 32px; height: 32px; font-size: 20px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all .15s; flex-shrink: 0;
+}
+.btn-new-note:hover { background: rgba(91,156,246,.22); }
+#note-list { flex: 1; overflow-y: auto; padding: 6px; }
+.note-item {
+  padding: 10px 12px; border-radius: 8px; cursor: pointer; transition: background .12s;
+  display: flex; align-items: flex-start; gap: 8px; position: relative;
+  border: 1px solid transparent; margin-bottom: 2px;
+}
+.note-item:hover { background: var(--surface2); }
+.note-item.active { background: var(--surface2); border-color: var(--border); }
+.note-item.active::before {
+  content: ''; position: absolute; left: 0; top: 6px; bottom: 6px;
+  width: 2px; background: var(--accent); border-radius: 2px;
+}
+.note-item-info { flex: 1; min-width: 0; }
+.note-title {
+  font-size: 13px; font-weight: 500; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px;
+}
+.note-date { font-size: 11px; color: var(--text-3); }
+.note-del {
+  opacity: 0; background: none; border: none; color: var(--text-3);
+  cursor: pointer; padding: 2px 5px; border-radius: 4px; font-size: 13px;
+  transition: all .12s; flex-shrink: 0;
+}
+.note-item:hover .note-del { opacity: 1; }
+.note-del:hover { color: var(--red); background: rgba(248,113,113,.1); }
+.list-empty { padding: 32px 16px; text-align: center; color: var(--text-3); font-size: 12px; line-height: 1.8; }
+
+/* EDITOR AREA */
+#editor-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+#empty-state {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 12px; color: var(--text-3);
+}
+.empty-glyph { font-family: var(--serif); font-size: 56px; font-weight: 300; font-style: italic; color: var(--border2); line-height: 1; }
+.empty-hint { font-size: 13px; }
+#editor-panel { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+
+/* TOOLBAR */
+.toolbar {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 16px; gap: 2px;
+  min-height: 46px; flex-wrap: wrap;
+}
+#note-title-inp {
+  background: none; border: none; color: var(--text); font-family: var(--serif);
+  font-size: 16px; font-weight: 300; outline: none; flex: 1; min-width: 120px; padding: 4px 0;
+}
+#note-title-inp::placeholder { color: var(--text-3); }
+.tb-sep { width: 1px; height: 18px; background: var(--border); margin: 0 6px; flex-shrink: 0; }
+.tb-btn {
+  background: none; border: none; color: var(--text-2); width: 28px; height: 28px;
+  border-radius: 5px; cursor: pointer; font-family: var(--mono); font-size: 12px;
+  display: flex; align-items: center; justify-content: center; transition: all .12s; flex-shrink: 0;
+}
+.tb-btn:hover { background: var(--surface2); color: var(--text); }
+.toolbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.save-indicator { font-size: 11px; color: var(--text-3); transition: color .2s; }
+.save-indicator.saving { color: var(--accent); }
+.save-indicator.saved  { color: var(--green); }
+.save-indicator.error  { color: var(--red); }
+.btn-share-note {
+  background: none; border: 1px solid var(--border2); color: var(--text-2);
+  border-radius: 7px; padding: 5px 12px; font-family: var(--mono); font-size: 12px;
+  cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 5px;
+}
+.btn-share-note:hover { border-color: var(--accent); color: var(--accent); }
+
+/* EDITOR CONTENT */
+#editor-wrap { flex: 1; overflow-y: auto; padding: 40px 64px; }
+#editor {
+  max-width: 720px; margin: 0 auto; min-height: calc(100vh - 200px);
+  outline: none; color: var(--text); font-family: var(--mono); font-size: 14px;
+  line-height: 1.85; caret-color: var(--accent);
+}
+#editor:empty::before { content: 'Bắt đầu ghi chú...'; color: var(--text-3); pointer-events: none; }
+#editor h1 { font-family: var(--serif); font-size: 26px; font-weight: 300; margin: 20px 0 10px; line-height: 1.3; }
+#editor h2 { font-family: var(--serif); font-size: 20px; font-weight: 300; margin: 16px 0 8px; }
+#editor h3 { font-family: var(--serif); font-size: 16px; font-weight: 600; margin: 14px 0 6px; }
+#editor ul, #editor ol { padding-left: 24px; margin: 6px 0; }
+#editor li { margin: 3px 0; }
+#editor strong { font-weight: 600; }
+#editor em { font-style: italic; color: var(--text-2); }
+#editor a { color: var(--accent); text-decoration: none; }
+#editor a:hover { text-decoration: underline; }
+#editor blockquote { border-left: 2px solid var(--accent); margin: 10px 0; padding: 6px 18px; color: var(--text-2); font-style: italic; }
+#editor code { background: var(--surface2); padding: 2px 7px; border-radius: 4px; font-size: 13px; color: var(--amber); }
+#editor hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+#editor img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); margin: 10px 0; display: block; }
+.img-uploading {
+  display: inline-block; background: var(--surface2); border: 1px dashed var(--border2);
+  border-radius: 8px; padding: 12px 20px; color: var(--text-3); font-size: 12px; margin: 6px 0;
+}
+
+/* SHARE MODAL */
+.overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.65); backdrop-filter: blur(6px);
+  z-index: 500; display: none; align-items: center; justify-content: center;
+}
+.overlay.open { display: flex; }
+.modal {
+  background: var(--surface); border: 1px solid var(--border2); border-radius: 14px;
+  padding: 28px; width: 440px; display: flex; flex-direction: column; gap: 18px;
+  animation: fadeUp .2s ease; box-shadow: 0 24px 64px rgba(0,0,0,.5);
+}
+.modal-title { font-size: 15px; font-weight: 500; }
+.modal-desc { font-size: 12px; color: var(--text-2); line-height: 1.7; }
+.perm-row { display: flex; gap: 8px; }
+.perm-opt {
+  flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px; text-align: center; cursor: pointer; font-family: var(--mono);
+  font-size: 12px; color: var(--text-2); transition: all .15s;
+}
+.perm-opt.sel { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.link-row { display: flex; gap: 8px; }
+.link-row input {
+  flex: 1; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 7px; padding: 9px 12px; color: var(--text-2); font-family: var(--mono); font-size: 11px; outline: none;
 }
 .btn-copy {
-  background: var(--accent); border: none; color: #fff;
-  border-radius: 7px; padding: 9px 16px;
-  font-family: var(--sans); font-size: 13px; cursor: pointer;
-  transition: opacity .2s; white-space: nowrap;
+  background: var(--accent); border: none; color: #fff; border-radius: 7px;
+  padding: 9px 16px; font-family: var(--mono); font-size: 12px; cursor: pointer;
+  transition: all .15s; white-space: nowrap;
 }
 .btn-copy:hover { opacity: .85; }
-.btn-copy.copied { background: var(--success); }
-.modal-close {
-  background: none; border: none; color: var(--text-muted);
-  cursor: pointer; align-self: flex-end; font-size: 12px;
-  padding: 4px 8px; border-radius: 5px;
-  transition: color .2s;
+.btn-copy.ok { background: var(--green); color: #000; }
+.modal-foot { display: flex; justify-content: flex-end; }
+.btn-ghost {
+  background: none; border: 1px solid var(--border); color: var(--text-2);
+  border-radius: 7px; padding: 7px 16px; font-family: var(--mono); font-size: 12px;
+  cursor: pointer; transition: all .15s;
 }
-.modal-close:hover { color: var(--text); }
+.btn-ghost:hover { border-color: var(--border2); color: var(--text); }
 
-/* ─── TOAST ──────────────────────────────────── */
+/* TOAST */
 #toast {
-  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
-  background: var(--surface2); border: 1px solid var(--border);
-  color: var(--text); padding: 10px 20px; border-radius: 8px;
-  font-size: 13px; font-family: var(--mono);
-  opacity: 0; transition: opacity .25s; pointer-events: none;
-  z-index: 999;
+  position: fixed; bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  background: var(--surface2); border: 1px solid var(--border2); color: var(--text);
+  padding: 9px 18px; border-radius: 8px; font-size: 12px;
+  opacity: 0; pointer-events: none; transition: all .22s; z-index: 9999; white-space: nowrap;
 }
-#toast.show { opacity: 1; }
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* ─── LOADING ─────────────────────────────────── */
-.spinner {
-  width: 18px; height: 18px;
-  border: 2px solid var(--border);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin .6s linear infinite;
+/* SPINNER */
+.spin {
+  width: 16px; height: 16px; border: 2px solid var(--border2);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin .6s linear infinite; display: inline-block;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Rendered markdown in share view */
-.md-render { font-family: var(--mono); font-size: 14px; line-height: 1.8; color: var(--text); }
-.md-render h1 { font-size: 26px; font-family: var(--sans); margin-bottom: 10px; }
-.md-render h2 { font-size: 20px; font-family: var(--sans); margin: 16px 0 8px; }
-.md-render h3 { font-size: 16px; font-family: var(--sans); margin: 12px 0 6px; }
-.md-render img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); margin: 8px 0; }
-.md-render ul, .md-render ol { padding-left: 22px; }
-.md-render blockquote { border-left: 3px solid var(--accent); padding: 4px 16px; color: var(--text-muted); font-style: italic; }
-.md-render code { background: var(--surface2); padding: 2px 6px; border-radius: 4px; }
-.md-render a { color: var(--accent); }
+/* RENDERED (share view) */
+.rendered { font-family: var(--mono); font-size: 14px; line-height: 1.85; color: var(--text); }
+.rendered h1 { font-family: var(--serif); font-size: 28px; font-weight: 300; margin-bottom: 16px; }
+.rendered h2 { font-family: var(--serif); font-size: 21px; font-weight: 300; margin: 18px 0 8px; }
+.rendered img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); margin: 10px 0; display: block; }
+.rendered blockquote { border-left: 2px solid var(--accent); padding: 6px 18px; color: var(--text-2); font-style: italic; margin: 10px 0; }
+.rendered code { background: var(--surface2); padding: 2px 7px; border-radius: 4px; color: var(--amber); }
+.rendered a { color: var(--accent); }
+.rendered ul, .rendered ol { padding-left: 24px; }
 </style>
 </head>
 <body>
 
-<!-- ═══ LOGIN ═══════════════════════════════════ -->
+<!-- LOGIN -->
 <div id="login-screen">
-  <div class="login-box">
-    <div class="login-logo">Git<span>Note</span></div>
-    <div class="login-field">
-      <label>Tài khoản</label>
-      <input id="inp-user" type="text" placeholder="admin" autocomplete="username"/>
+  <div class="login-wrap">
+    <div class="login-header">
+      <div class="login-logo">Git<em>Note</em></div>
+      <div class="login-sub">// personal notepad</div>
     </div>
-    <div class="login-field">
-      <label>Mật khẩu</label>
-      <input id="inp-pass" type="password" placeholder="••••••••" autocomplete="current-password"/>
+    <div class="login-card">
+      <div class="field">
+        <label>Tài khoản</label>
+        <input id="inp-user" type="text" placeholder="admin" autocomplete="username"/>
+      </div>
+      <div class="field">
+        <label>Mật khẩu</label>
+        <input id="inp-pass" type="password" placeholder="••••••••" autocomplete="current-password"/>
+      </div>
+      <button class="btn-primary" id="btn-login">Đăng nhập</button>
+      <div class="login-err" id="login-err"></div>
     </div>
-    <div class="login-field">
-      <label>GitHub Token</label>
-      <input id="inp-token" type="password" placeholder="ghp_..." autocomplete="off"/>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:5px">Lưu trên máy bạn, không lưu lên server</div>
-    </div>
-    <button class="btn-login" id="btn-login">Đăng nhập</button>
-    <div class="login-error" id="login-error"></div>
   </div>
 </div>
 
-<!-- ═══ SHARE VIEW ═══════════════════════════════ -->
+<!-- SHARE SCREEN -->
 <div id="share-screen">
-  <div class="share-header">
-    <div class="share-logo">Git<span>Note</span></div>
-    <div class="share-badge" id="share-badge">👁 Chỉ xem</div>
+  <div class="share-bar">
+    <div class="share-logo">GitNote</div>
+    <div class="share-pill" id="share-pill">👁 Chỉ xem</div>
   </div>
-  <div id="share-content"></div>
+  <div class="share-body" id="share-body"></div>
 </div>
 
-<!-- ═══ MAIN APP ══════════════════════════════════ -->
+<!-- MAIN APP -->
 <div id="app">
   <div class="topbar">
-    <div class="topbar-logo">Git<span>Note</span></div>
-    <button class="topbar-btn danger" id="btn-logout">⏎ Đăng xuất</button>
+    <div class="topbar-logo">GitNote</div>
+    <button class="icon-btn danger" id="btn-logout">↩ Đăng xuất</button>
   </div>
   <div class="workspace">
-    <!-- Sidebar -->
     <div id="sidebar">
-      <div class="sidebar-head">
-        <input id="search-inp" type="text" placeholder="Tìm kiếm..."/>
-        <button class="btn-new" id="btn-new" title="Tạo ghi chú mới">+</button>
+      <div class="sidebar-top">
+        <div class="search-wrap">
+          <span class="search-icon">⌕</span>
+          <input id="search-inp" type="text" placeholder="Tìm kiếm..."/>
+        </div>
+        <button class="btn-new-note" id="btn-new" title="Tạo ghi chú mới">+</button>
       </div>
       <div id="note-list"></div>
     </div>
-    <!-- Editor -->
     <div id="editor-area">
-      <!-- Empty state -->
       <div id="empty-state">
-        <div class="empty-icon">📝</div>
-        <div class="empty-text">Chọn hoặc tạo ghi chú mới</div>
+        <div class="empty-glyph">∅</div>
+        <div class="empty-hint">Chọn hoặc tạo ghi chú mới</div>
       </div>
-      <!-- Editor panel (hidden until note selected) -->
-      <div id="editor-panel" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
-        <div class="editor-toolbar">
-          <input class="tb-title" id="note-title" placeholder="Tiêu đề ghi chú..." />
+      <div id="editor-panel">
+        <div class="toolbar">
+          <input id="note-title-inp" placeholder="Tiêu đề..."/>
           <div class="tb-sep"></div>
-          <button class="tb-btn" data-cmd="bold" title="Bold"><b>B</b></button>
-          <button class="tb-btn" data-cmd="italic" title="Italic"><i>I</i></button>
-          <button class="tb-btn" data-cmd="underline" title="Underline"><u>U</u></button>
+          <button class="tb-btn" data-cmd="bold"                title="Bold"><b>B</b></button>
+          <button class="tb-btn" data-cmd="italic"              title="Italic"><i>I</i></button>
+          <button class="tb-btn" data-cmd="underline"           title="Underline"><u style="text-underline-offset:2px">U</u></button>
           <div class="tb-sep"></div>
-          <button class="tb-btn" data-cmd="h1" title="H1">H1</button>
-          <button class="tb-btn" data-cmd="h2" title="H2">H2</button>
-          <button class="tb-btn" data-cmd="h3" title="H3">H3</button>
+          <button class="tb-btn" data-cmd="h1"                  title="Heading 1">H1</button>
+          <button class="tb-btn" data-cmd="h2"                  title="Heading 2">H2</button>
+          <button class="tb-btn" data-cmd="h3"                  title="Heading 3">H3</button>
           <div class="tb-sep"></div>
-          <button class="tb-btn" data-cmd="insertUnorderedList" title="Bullet list">≡</button>
-          <button class="tb-btn" data-cmd="insertOrderedList" title="Numbered list">1.</button>
-          <button class="tb-btn" data-cmd="blockquote" title="Blockquote">"</button>
-          <button class="tb-btn" data-cmd="link" title="Link">🔗</button>
-          <div class="tb-sep"></div>
-          <div class="tb-right">
-            <span class="save-status" id="save-status"></span>
-            <button class="btn-share" id="btn-share">🔗 Chia sẻ</button>
+          <button class="tb-btn" data-cmd="insertUnorderedList" title="Bullet">•≡</button>
+          <button class="tb-btn" data-cmd="insertOrderedList"   title="Numbered">1≡</button>
+          <button class="tb-btn" data-cmd="blockquote"          title="Blockquote">❝</button>
+          <button class="tb-btn" data-cmd="link"                title="Link">↗</button>
+          <div class="toolbar-right">
+            <span class="save-indicator" id="save-ind"></span>
+            <button class="btn-share-note" id="btn-share">⤤ Chia sẻ</button>
           </div>
         </div>
         <div id="editor-wrap">
@@ -452,400 +374,295 @@ body {
   </div>
 </div>
 
-<!-- ═══ SHARE MODAL ════════════════════════════════ -->
-<div class="modal-overlay" id="share-modal">
+<!-- SHARE MODAL -->
+<div class="overlay" id="share-overlay">
   <div class="modal">
-    <h3>🔗 Chia sẻ ghi chú</h3>
-    <p class="modal-desc">Chọn quyền truy cập cho người nhận link.</p>
-    <div class="perm-options">
-      <button class="perm-btn selected" data-perm="view">👁 Chỉ xem</button>
-      <button class="perm-btn" data-perm="edit">✏️ Có thể sửa</button>
+    <div class="modal-title">⤤ Chia sẻ ghi chú</div>
+    <div class="modal-desc">Tạo link chia sẻ. Người nhận chỉ thấy đúng ghi chú này, không thấy danh sách.</div>
+    <div class="perm-row">
+      <div class="perm-opt sel" data-perm="view">👁 Chỉ xem</div>
+      <div class="perm-opt"     data-perm="edit">✏️ Có thể sửa</div>
     </div>
-    <div class="share-link-box">
-      <input id="share-link-inp" type="text" readonly />
-      <button class="btn-copy" id="btn-copy-link">Sao chép</button>
+    <div class="link-row">
+      <input id="share-link" type="text" readonly placeholder="Đang tạo link..."/>
+      <button class="btn-copy" id="btn-copy">Sao chép</button>
     </div>
-    <button class="modal-close" id="modal-close">Đóng</button>
+    <div class="modal-foot">
+      <button class="btn-ghost" id="btn-modal-close">Đóng</button>
+    </div>
   </div>
 </div>
 
-<!-- ═══ TOAST ══════════════════════════════════════ -->
 <div id="toast"></div>
 
 <script>
-// ════════════════════════════════════════════════════
-//  CONFIG
-// ════════════════════════════════════════════════════
-const CONFIG = {
-  get token() { return sessionStorage.getItem('gn_token') || ''; },
-  owner:   'Kagerzzz',
-  repo:    'GitNote',
-  gistId:  '246765d4d1719ec88497a14016cb8da3',
-};
+// CONFIG
+const API = 'https://script.google.com/macros/s/AKfycbzhzQ7O9sZE2J400wf8ILgAal81PsA2p6sSIdfyWuqho8upbWPiOh5VyprHuxD2tvoE/exec';
 
-const GH = {
-  headers: () => ({
-    'Authorization': `token ${CONFIG.token}`,
-    'Accept': 'application/vnd.github+json',
-    'Content-Type': 'application/json',
-  }),
-  async getIssues() {
-    const r = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/issues?state=open&per_page=100&labels=gitnote`, { headers: this.headers() });
-    return r.json();
-  },
-  async createIssue(title, body) {
-    const r = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/issues`, {
-      method: 'POST', headers: this.headers(),
-      body: JSON.stringify({ title, body, labels: ['gitnote'] }),
-    });
-    return r.json();
-  },
-  async updateIssue(num, title, body) {
-    const r = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/issues/${num}`, {
-      method: 'PATCH', headers: this.headers(),
-      body: JSON.stringify({ title, body }),
-    });
-    return r.json();
-  },
-  async closeIssue(num) {
-    await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/issues/${num}`, {
-      method: 'PATCH', headers: this.headers(),
-      body: JSON.stringify({ state: 'closed' }),
-    });
-  },
-  async uploadImage(blob) {
-    // Upload ảnh bằng cách tạo comment tạm trong issue đặc biệt (issue #1 hoặc tạo mới)
-    // Thực tế GitHub không cho upload file qua API trực tiếp
-    // → Dùng base64 data URL nhúng thẳng vào content (giải pháp đơn giản nhất)
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = e => resolve(e.target.result);
-      reader.readAsDataURL(blob);
-    });
-  },
-  async getGist() {
-    const r = await fetch(`https://api.github.com/gists/${CONFIG.gistId}`, { headers: this.headers() });
-    const data = await r.json();
-    console.log('Gist response status:', r.status, data);
-    if (!r.ok) throw new Error(`GitHub API lỗi ${r.status}: ${data.message || JSON.stringify(data)}`);
-    if (!data.files || !data.files['notepad-config.json']) throw new Error('Không tìm thấy file notepad-config.json trong Gist');
-    return data;
-  },
-  async updateGist(content) {
-    await fetch(`https://api.github.com/gists/${CONFIG.gistId}`, {
-      method: 'PATCH', headers: this.headers(),
-      body: JSON.stringify({ files: { 'notepad-config.json': { content: JSON.stringify(content, null, 2) } } }),
-    });
-  },
-};
+// API CALL
+async function api(payload) {
+  const res = await fetch(API, { method: 'POST', body: JSON.stringify(payload) });
+  const data = await res.json();
+  if (data && data.error) throw new Error(data.error);
+  return data;
+}
 
-// ════════════════════════════════════════════════════
-//  STATE
-// ════════════════════════════════════════════════════
-let notes = [];           // { number, title, body, updated_at }
-let currentNote = null;
-let gistConfig = null;    // { username, password, shares: { token: { issueNumber, perm } } }
-let saveTimer = null;
-let sharePerm = 'view';
-
-// ════════════════════════════════════════════════════
-//  SHA-256
-// ════════════════════════════════════════════════════
+// SHA256
 async function sha256(msg) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
-// ════════════════════════════════════════════════════
-//  TOAST
-// ════════════════════════════════════════════════════
-function toast(msg, dur=2200) {
+// TOAST
+let _tt;
+function toast(msg, dur=2400) {
   const el = document.getElementById('toast');
   el.textContent = msg;
   el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), dur);
+  clearTimeout(_tt);
+  _tt = setTimeout(() => el.classList.remove('show'), dur);
 }
 
-// ════════════════════════════════════════════════════
-//  ROUTING — check share param first
-// ════════════════════════════════════════════════════
-async function checkShareMode() {
-  const params = new URLSearchParams(location.search);
-  const token = params.get('share');
-  if (!token) return false;
-
-  // Load gist để lấy config share
-  try {
-    const gist = await GH.getGist();
-    const cfg = JSON.parse(gist.files['notepad-config.json'].content);
-    const shareInfo = cfg.shares && cfg.shares[token];
-    if (!shareInfo) {
-      document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('share-screen').style.display = 'flex';
-      document.getElementById('share-content').innerHTML = '<p style="color:var(--text-muted);padding:40px">Link chia sẻ không hợp lệ hoặc đã hết hạn.</p>';
-      return true;
-    }
-
-    const { issueNumber, perm } = shareInfo;
-    // Fetch issue
-    const r = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/issues/${issueNumber}`, { headers: GH.headers() });
-    const issue = await r.json();
-
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('share-screen').style.display = 'flex';
-
-    const badge = document.getElementById('share-badge');
-    if (perm === 'edit') {
-      badge.textContent = '✏️ Có thể sửa';
-      badge.classList.add('edit');
-    }
-
-    if (perm === 'view') {
-      // Render markdown-ish HTML
-      document.getElementById('share-content').innerHTML =
-        `<h1 style="font-size:26px;font-family:var(--sans);margin-bottom:24px">${escHtml(issue.title)}</h1>` +
-        `<div class="md-render">${bodyToHtml(issue.body || '')}</div>`;
-    } else {
-      // Edit mode
-      const wrap = document.getElementById('share-content');
-      wrap.innerHTML = `
-        <input id="share-title-inp" value="${escHtml(issue.title)}" style="width:100%;background:none;border:none;border-bottom:1px solid var(--border);color:var(--text);font-family:var(--sans);font-size:24px;font-weight:700;padding:0 0 12px;outline:none;margin-bottom:20px"/>
-        <div id="share-editor" contenteditable="true" style="outline:none;font-family:var(--mono);font-size:14px;line-height:1.8;min-height:400px"></div>
-        <div style="margin-top:16px;display:flex;gap:10px">
-          <button id="share-save-btn" style="background:var(--accent);border:none;color:#fff;border-radius:8px;padding:10px 24px;font-family:var(--sans);font-size:14px;cursor:pointer">Lưu thay đổi</button>
-          <span id="share-save-st" style="font-size:12px;color:var(--text-muted);align-self:center"></span>
-        </div>`;
-      const ed = document.getElementById('share-editor');
-      ed.innerHTML = issue.body || '';
-      setupPasteImage(ed);
-      document.getElementById('share-save-btn').onclick = async () => {
-        const st = document.getElementById('share-save-st');
-        st.textContent = 'Đang lưu...';
-        await GH.updateIssue(issueNumber,
-          document.getElementById('share-title-inp').value,
-          ed.innerHTML);
-        st.textContent = '✓ Đã lưu';
-      };
-    }
-    return true;
-  } catch(e) {
-    return false;
-  }
-}
-
-// ════════════════════════════════════════════════════
-//  HTML HELPERS
-// ════════════════════════════════════════════════════
-function escHtml(s) {
+// ESC HTML
+function esc(s) {
   return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function bodyToHtml(body) {
-  // Very simple: body is already stored as innerHTML
-  return body;
+// STATE
+let notes = [], current = null, saveTimer = null, sharePerm = 'view', shareGen = false;
+
+// SHARE MODE
+async function checkShareMode() {
+  const token = new URLSearchParams(location.search).get('share');
+  if (!token) return false;
+  document.getElementById('login-screen').style.display = 'none';
+  const screen = document.getElementById('share-screen');
+  screen.style.display = 'flex';
+  document.getElementById('share-body').innerHTML = '<div style="padding:48px;text-align:center"><div class="spin" style="margin:auto"></div></div>';
+  try {
+    const note = await api({ action: 'getByToken', token });
+    if (note.error || !note.id) {
+      document.getElementById('share-body').innerHTML = '<p style="color:var(--text-3);padding:40px 0">Link không hợp lệ hoặc đã hết hạn.</p>';
+      return true;
+    }
+    const pill = document.getElementById('share-pill');
+    if (note.share_perm === 'edit') { pill.textContent = '✏️ Có thể sửa'; pill.classList.add('edit'); }
+    const body = document.getElementById('share-body');
+    if (note.share_perm === 'view') {
+      body.innerHTML = `<h1 style="font-family:var(--serif);font-size:28px;font-weight:300;margin-bottom:24px">${esc(note.title)}</h1><div class="rendered">${note.content||''}</div>`;
+    } else {
+      body.innerHTML = `
+        <input id="s-title" value="${esc(note.title)}" style="width:100%;background:none;border:none;border-bottom:1px solid var(--border);color:var(--text);font-family:var(--serif);font-size:26px;font-weight:300;padding:0 0 14px;outline:none;margin-bottom:24px"/>
+        <div id="s-editor" contenteditable="true" style="outline:none;font-family:var(--mono);font-size:14px;line-height:1.85;min-height:400px;color:var(--text)"></div>
+        <div style="margin-top:20px;display:flex;align-items:center;gap:12px">
+          <button id="s-save" style="background:var(--accent);border:none;color:#fff;border-radius:8px;padding:10px 24px;font-family:var(--mono);font-size:13px;cursor:pointer">Lưu thay đổi</button>
+          <span id="s-st" style="font-size:12px;color:var(--text-3)"></span>
+        </div>`;
+      const ed = document.getElementById('s-editor');
+      ed.innerHTML = note.content || '';
+      setupPaste(ed);
+      document.getElementById('s-save').onclick = async () => {
+        const st = document.getElementById('s-st');
+        st.textContent = 'Đang lưu...';
+        try {
+          await api({ action: 'updateNote', id: note.id, title: document.getElementById('s-title').value, content: ed.innerHTML });
+          st.textContent = '✓ Đã lưu';
+        } catch(e) { st.textContent = 'Lỗi: ' + e.message; }
+      };
+    }
+  } catch(e) {
+    document.getElementById('share-body').innerHTML = `<p style="color:var(--red);padding:40px 0">Lỗi: ${esc(e.message)}</p>`;
+  }
+  return true;
 }
 
-// ════════════════════════════════════════════════════
-//  LOGIN
-// ════════════════════════════════════════════════════
+// LOGIN
 async function doLogin() {
   const user  = document.getElementById('inp-user').value.trim();
   const pass  = document.getElementById('inp-pass').value;
-  const token = document.getElementById('inp-token').value.trim();
-  const errEl = document.getElementById('login-error');
+  const errEl = document.getElementById('login-err');
   const btn   = document.getElementById('btn-login');
-
-  if (!user || !pass || !token) { errEl.textContent = 'Vui lòng nhập đầy đủ (kể cả GitHub Token).'; return; }
-  if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
-    errEl.textContent = 'Token không hợp lệ, phải bắt đầu bằng ghp_';
-    return;
-  }
-
-  btn.textContent = 'Đang xác thực...'; btn.disabled = true;
-
-  // Lưu token tạm để GH.headers() dùng được
-  sessionStorage.setItem('gn_token', token);
-
+  if (!user || !pass) { errEl.textContent = 'Vui lòng nhập đầy đủ.'; return; }
+  btn.textContent = 'Đang xác thực...'; btn.disabled = true; errEl.textContent = '';
   try {
-    const gist = await GH.getGist();
-    gistConfig = JSON.parse(gist.files['notepad-config.json'].content);
-    const hashed = await sha256(pass);
-    if (user !== gistConfig.username || hashed !== gistConfig.password) {
+    const hash = await sha256(pass);
+    const res = await api({ action: 'login', username: user, passwordHash: hash });
+    if (!res.success) {
       errEl.textContent = 'Sai tài khoản hoặc mật khẩu.';
-      sessionStorage.removeItem('gn_token');
-      btn.textContent = 'Đăng nhập'; btn.disabled = false;
-      return;
+      btn.textContent = 'Đăng nhập'; btn.disabled = false; return;
     }
     sessionStorage.setItem('gn_auth', '1');
     showApp();
   } catch(e) {
-    console.error('Login error:', e);
-    sessionStorage.removeItem('gn_token');
-    errEl.textContent = 'Lỗi: ' + (e.message || JSON.stringify(e));
+    errEl.textContent = 'Lỗi kết nối: ' + e.message;
     btn.textContent = 'Đăng nhập'; btn.disabled = false;
   }
 }
 
-// ════════════════════════════════════════════════════
-//  SHOW APP
-// ════════════════════════════════════════════════════
+document.getElementById('btn-login').addEventListener('click', doLogin);
+document.getElementById('inp-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+document.getElementById('inp-user').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('inp-pass').focus(); });
+
+// SHOW APP
 async function showApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   await loadNotes();
 }
 
-// ════════════════════════════════════════════════════
-//  LOAD NOTES
-// ════════════════════════════════════════════════════
+// LOAD NOTES
 async function loadNotes() {
   const list = document.getElementById('note-list');
-  list.innerHTML = '<div style="padding:20px;text-align:center"><div class="spinner" style="margin:auto"></div></div>';
+  list.innerHTML = '<div style="padding:32px;text-align:center"><div class="spin" style="margin:auto"></div></div>';
   try {
-    notes = await GH.getIssues();
+    const data = await api({ action: 'getNotes' });
+    notes = Array.isArray(data) ? data : [];
+    notes.sort((a,b) => new Date(b.updated_at) - new Date(a.updated_at));
     renderList();
   } catch(e) {
-    list.innerHTML = '<div style="padding:16px;color:var(--danger);font-size:13px">Lỗi tải ghi chú</div>';
+    list.innerHTML = `<div class="list-empty" style="color:var(--red)">Lỗi tải:<br>${esc(e.message)}</div>`;
   }
 }
 
-// ════════════════════════════════════════════════════
-//  RENDER LIST
-// ════════════════════════════════════════════════════
+// RENDER LIST
 function renderList(filter='') {
   const list = document.getElementById('note-list');
-  const filtered = notes.filter(n => n.title.toLowerCase().includes(filter.toLowerCase()));
+  const q = (filter||'').toLowerCase();
+  const filtered = notes.filter(n => (n.title||'').toLowerCase().includes(q));
   if (!filtered.length) {
-    list.innerHTML = '<div style="padding:16px;color:var(--text-muted);font-size:13px;text-align:center">Không có ghi chú</div>';
+    list.innerHTML = `<div class="list-empty">Không có ghi chú${filter?' phù hợp':''}</div>`;
     return;
   }
   list.innerHTML = '';
   filtered.forEach(n => {
-    const div = document.createElement('div');
-    div.className = 'note-item' + (currentNote && currentNote.number === n.number ? ' active' : '');
-    div.dataset.num = n.number;
     const d = new Date(n.updated_at);
+    const ds = d.toLocaleDateString('vi-VN', {day:'2-digit',month:'2-digit',year:'numeric'});
+    const div = document.createElement('div');
+    div.className = 'note-item' + (current && current.id === n.id ? ' active' : '');
+    div.dataset.id = n.id;
     div.innerHTML = `
-      <div class="note-item-body">
-        <div class="note-item-title">${escHtml(n.title)}</div>
-        <div class="note-item-date">${d.toLocaleDateString('vi-VN')}</div>
+      <div class="note-item-info">
+        <div class="note-title">${esc(n.title||'Không có tiêu đề')}</div>
+        <div class="note-date">${ds}</div>
       </div>
-      <button class="note-item-del" data-num="${n.number}" title="Xóa">✕</button>`;
-    div.addEventListener('click', e => {
-      if (e.target.classList.contains('note-item-del')) return;
-      openNote(n);
-    });
-    div.querySelector('.note-item-del').addEventListener('click', e => {
-      e.stopPropagation();
-      deleteNote(n.number);
-    });
+      <button class="note-del" title="Xóa">✕</button>`;
+    div.addEventListener('click', e => { if(e.target.classList.contains('note-del')) return; openNote(n); });
+    div.querySelector('.note-del').addEventListener('click', e => { e.stopPropagation(); deleteNote(n); });
     list.appendChild(div);
   });
 }
 
-// ════════════════════════════════════════════════════
-//  OPEN NOTE
-// ════════════════════════════════════════════════════
+// OPEN NOTE
 function openNote(n) {
-  currentNote = n;
+  current = n;
   document.getElementById('empty-state').style.display = 'none';
-  const panel = document.getElementById('editor-panel');
-  panel.style.display = 'flex';
-  document.getElementById('note-title').value = n.title;
-  document.getElementById('editor').innerHTML = n.body || '';
-  document.getElementById('save-status').textContent = '';
-  // Update active in list
-  document.querySelectorAll('.note-item').forEach(el => {
-    el.classList.toggle('active', Number(el.dataset.num) === n.number);
-  });
+  document.getElementById('editor-panel').style.display = 'flex';
+  document.getElementById('note-title-inp').value = n.title || '';
+  document.getElementById('editor').innerHTML = n.content || '';
+  setSaveInd('','');
+  renderList(document.getElementById('search-inp').value);
 }
 
-// ════════════════════════════════════════════════════
-//  CREATE NOTE
-// ════════════════════════════════════════════════════
-async function createNote() {
+// CREATE
+document.getElementById('btn-new').addEventListener('click', async () => {
   const btn = document.getElementById('btn-new');
   btn.disabled = true;
   try {
-    const issue = await GH.createIssue('Ghi chú mới', '');
-    notes.unshift(issue);
-    renderList();
-    openNote(issue);
-  } catch(e) { toast('Lỗi tạo ghi chú'); }
+    const res = await api({ action: 'createNote', title: 'Ghi chú mới', content: '' });
+    const n = { id: res.id, title: 'Ghi chú mới', content: '', created_at: res.created_at, updated_at: res.created_at };
+    notes.unshift(n);
+    renderList(document.getElementById('search-inp').value);
+    openNote(n);
+    setTimeout(() => { const t = document.getElementById('note-title-inp'); t.focus(); t.select(); }, 50);
+  } catch(e) { toast('Lỗi tạo ghi chú: ' + e.message); }
   btn.disabled = false;
+});
+
+// DELETE
+async function deleteNote(n) {
+  if (!confirm(`Xóa "${n.title}"?`)) return;
+  try {
+    await api({ action: 'deleteNote', id: n.id });
+    notes = notes.filter(x => x.id !== n.id);
+    if (current && current.id === n.id) {
+      current = null;
+      document.getElementById('editor-panel').style.display = 'none';
+      document.getElementById('empty-state').style.display = 'flex';
+    }
+    renderList(document.getElementById('search-inp').value);
+    toast('Đã xóa ghi chú');
+  } catch(e) { toast('Lỗi xóa: ' + e.message); }
 }
 
-// ════════════════════════════════════════════════════
-//  DELETE NOTE
-// ════════════════════════════════════════════════════
-async function deleteNote(num) {
-  if (!confirm('Xóa ghi chú này?')) return;
-  await GH.closeIssue(num);
-  notes = notes.filter(n => n.number !== num);
-  if (currentNote && currentNote.number === num) {
-    currentNote = null;
-    document.getElementById('editor-panel').style.display = 'none';
-    document.getElementById('empty-state').style.display = 'flex';
-  }
-  renderList();
-  toast('Đã xóa ghi chú');
+// SAVE
+function setSaveInd(cls, txt) {
+  const el = document.getElementById('save-ind');
+  el.className = 'save-indicator' + (cls ? ' '+cls : '');
+  el.textContent = txt;
 }
 
-// ════════════════════════════════════════════════════
-//  AUTO SAVE
-// ════════════════════════════════════════════════════
 function triggerSave() {
-  if (!currentNote) return;
-  const st = document.getElementById('save-status');
-  st.className = 'save-status saving'; st.textContent = 'Đang lưu...';
+  if (!current) return;
+  setSaveInd('saving', '● lưu...');
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
-    const title = document.getElementById('note-title').value || 'Không có tiêu đề';
-    const body  = document.getElementById('editor').innerHTML;
+    const title   = document.getElementById('note-title-inp').value || 'Không có tiêu đề';
+    const content = document.getElementById('editor').innerHTML;
     try {
-      await GH.updateIssue(currentNote.number, title, body);
-      currentNote.title = title; currentNote.body = body;
-      currentNote.updated_at = new Date().toISOString();
-      // Update list
-      const idx = notes.findIndex(n => n.number === currentNote.number);
-      if (idx !== -1) notes[idx] = { ...notes[idx], title, body, updated_at: currentNote.updated_at };
-      renderList();
-      // Reselect active
-      document.querySelectorAll('.note-item').forEach(el => {
-        el.classList.toggle('active', Number(el.dataset.num) === currentNote.number);
-      });
-      st.className = 'save-status saved'; st.textContent = '✓ Đã lưu';
-    } catch(e) {
-      st.className = 'save-status'; st.textContent = 'Lỗi lưu';
-    }
-  }, 1200);
+      await api({ action: 'updateNote', id: current.id, title, content });
+      current.title = title; current.content = content;
+      current.updated_at = new Date().toISOString();
+      const idx = notes.findIndex(n => n.id === current.id);
+      if (idx !== -1) notes[idx] = {...notes[idx], title, content, updated_at: current.updated_at};
+      notes.sort((a,b) => new Date(b.updated_at) - new Date(a.updated_at));
+      renderList(document.getElementById('search-inp').value);
+      setSaveInd('saved', '✓ đã lưu');
+      setTimeout(() => setSaveInd('',''), 2500);
+    } catch(e) { setSaveInd('error', '✕ lỗi lưu'); }
+  }, 1000);
 }
 
-// ════════════════════════════════════════════════════
-//  PASTE IMAGE
-// ════════════════════════════════════════════════════
-function setupPasteImage(editorEl) {
-  editorEl.addEventListener('paste', async e => {
+document.getElementById('note-title-inp').addEventListener('input', triggerSave);
+document.getElementById('editor').addEventListener('input', triggerSave);
+
+// TOOLBAR
+document.querySelectorAll('.tb-btn[data-cmd]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const cmd = btn.dataset.cmd;
+    document.getElementById('editor').focus();
+    if (['h1','h2','h3'].includes(cmd)) document.execCommand('formatBlock', false, cmd);
+    else if (cmd === 'blockquote') document.execCommand('formatBlock', false, 'blockquote');
+    else if (cmd === 'link') { const u = prompt('Nhập URL:'); if(u) document.execCommand('createLink', false, u); }
+    else document.execCommand(cmd, false, null);
+    triggerSave();
+  });
+});
+
+// PASTE IMAGE
+function setupPaste(el) {
+  el.addEventListener('paste', async e => {
     const items = e.clipboardData && e.clipboardData.items;
     if (!items) return;
     for (const item of items) {
       if (item.type.startsWith('image/')) {
         e.preventDefault();
         const blob = item.getAsFile();
-        toast('Đang xử lý ảnh...');
-        const dataUrl = await GH.uploadImage(blob);
-        const img = document.createElement('img');
-        img.src = dataUrl;
-        const sel = window.getSelection();
-        if (sel && sel.rangeCount) {
-          const range = sel.getRangeAt(0);
-          range.deleteContents();
-          range.insertNode(img);
-          range.collapse(false);
-        } else {
-          editorEl.appendChild(img);
+        const ph = document.createElement('div');
+        ph.className = 'img-uploading';
+        ph.textContent = '⏳ Đang tải ảnh lên Drive...';
+        insertAtCursor(el, ph);
+        try {
+          const b64 = await blobToB64(blob);
+          const pure = b64.split(',')[1];
+          const res = await api({ action: 'uploadImage', base64: pure, mimeType: blob.type, filename: 'img_'+Date.now()+'.png' });
+          const img = document.createElement('img');
+          img.src = res.url;
+          ph.replaceWith(img);
+          toast('✓ Đã chèn ảnh');
+        } catch(err) {
+          ph.textContent = '✕ Lỗi tải ảnh: ' + err.message;
+          toast('Lỗi ảnh: ' + err.message);
         }
-        toast('✓ Đã chèn ảnh');
         triggerSave();
         break;
       }
@@ -853,125 +670,84 @@ function setupPasteImage(editorEl) {
   });
 }
 
-// ════════════════════════════════════════════════════
-//  TOOLBAR COMMANDS
-// ════════════════════════════════════════════════════
-document.querySelectorAll('.tb-btn[data-cmd]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const cmd = btn.dataset.cmd;
-    const ed = document.getElementById('editor');
-    ed.focus();
-    if (cmd === 'h1' || cmd === 'h2' || cmd === 'h3') {
-      document.execCommand('formatBlock', false, cmd);
-    } else if (cmd === 'blockquote') {
-      document.execCommand('formatBlock', false, 'blockquote');
-    } else if (cmd === 'link') {
-      const url = prompt('Nhập URL:');
-      if (url) document.execCommand('createLink', false, url);
-    } else {
-      document.execCommand(cmd, false, null);
-    }
-    triggerSave();
+function blobToB64(blob) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result);
+    r.onerror = rej;
+    r.readAsDataURL(blob);
   });
-});
-
-// ════════════════════════════════════════════════════
-//  SHARE MODAL
-// ════════════════════════════════════════════════════
-function genToken() {
-  return Math.random().toString(36).slice(2,10) + Date.now().toString(36);
 }
 
+function insertAtCursor(el, node) {
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount && el.contains(sel.getRangeAt(0).startContainer)) {
+    const range = sel.getRangeAt(0);
+    range.deleteContents(); range.insertNode(node);
+    range.setStartAfter(node); range.collapse(true);
+    sel.removeAllRanges(); sel.addRange(range);
+  } else { el.appendChild(node); }
+}
+
+setupPaste(document.getElementById('editor'));
+
+// SHARE
 document.getElementById('btn-share').addEventListener('click', async () => {
-  if (!currentNote) return;
-  document.getElementById('share-modal').classList.add('open');
-  await generateShareLink();
+  if (!current) return;
+  document.getElementById('share-overlay').classList.add('open');
+  document.getElementById('share-link').value = 'Đang tạo link...';
+  await genShareLink();
 });
 
-document.getElementById('modal-close').addEventListener('click', () => {
-  document.getElementById('share-modal').classList.remove('open');
+document.getElementById('btn-modal-close').addEventListener('click', () => {
+  document.getElementById('share-overlay').classList.remove('open');
 });
 
-document.querySelectorAll('.perm-btn').forEach(btn => {
+document.querySelectorAll('.perm-opt').forEach(btn => {
   btn.addEventListener('click', async () => {
-    document.querySelectorAll('.perm-btn').forEach(b => b.classList.remove('selected'));
-    btn.classList.add('selected');
+    document.querySelectorAll('.perm-opt').forEach(b => b.classList.remove('sel'));
+    btn.classList.add('sel');
     sharePerm = btn.dataset.perm;
-    await generateShareLink();
+    document.getElementById('share-link').value = 'Đang tạo link...';
+    await genShareLink();
   });
 });
 
-async function generateShareLink() {
-  // Tạo token mới cho note + perm combo
-  const token = genToken();
-  const inp = document.getElementById('share-link-inp');
-  inp.value = 'Đang tạo link...';
+async function genShareLink() {
+  if (shareGen) return;
+  shareGen = true;
   try {
-    // Load gist config mới nhất
-    const gist = await GH.getGist();
-    gistConfig = JSON.parse(gist.files['notepad-config.json'].content);
-    if (!gistConfig.shares) gistConfig.shares = {};
-    gistConfig.shares[token] = { issueNumber: currentNote.number, perm: sharePerm };
-    await GH.updateGist(gistConfig);
-    const url = `${location.origin}${location.pathname}?share=${token}`;
-    inp.value = url;
+    const res = await api({ action: 'createShare', id: current.id, perm: sharePerm });
+    const url = `${location.origin}${location.pathname}?share=${res.token}`;
+    document.getElementById('share-link').value = url;
   } catch(e) {
-    inp.value = 'Lỗi tạo link';
+    document.getElementById('share-link').value = 'Lỗi: ' + e.message;
   }
+  shareGen = false;
 }
 
-document.getElementById('btn-copy-link').addEventListener('click', () => {
-  const inp = document.getElementById('share-link-inp');
-  navigator.clipboard.writeText(inp.value).then(() => {
-    const btn = document.getElementById('btn-copy-link');
-    btn.textContent = '✓ Đã sao chép';
-    btn.classList.add('copied');
-    setTimeout(() => { btn.textContent = 'Sao chép'; btn.classList.remove('copied'); }, 2000);
+document.getElementById('btn-copy').addEventListener('click', () => {
+  navigator.clipboard.writeText(document.getElementById('share-link').value).then(() => {
+    const btn = document.getElementById('btn-copy');
+    btn.textContent = '✓ Đã sao chép'; btn.classList.add('ok');
+    setTimeout(() => { btn.textContent = 'Sao chép'; btn.classList.remove('ok'); }, 2000);
   });
 });
 
-// ════════════════════════════════════════════════════
-//  EVENTS
-// ════════════════════════════════════════════════════
-document.getElementById('btn-login').addEventListener('click', doLogin);
-document.getElementById('inp-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
-document.getElementById('inp-user').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('inp-pass').focus(); });
+// SEARCH
+document.getElementById('search-inp').addEventListener('input', e => renderList(e.target.value));
 
-document.getElementById('btn-new').addEventListener('click', createNote);
-
+// LOGOUT
 document.getElementById('btn-logout').addEventListener('click', () => {
   sessionStorage.removeItem('gn_auth');
-  sessionStorage.removeItem('gn_token');
   location.reload();
 });
 
-document.getElementById('search-inp').addEventListener('input', e => {
-  renderList(e.target.value);
-});
-
-document.getElementById('editor').addEventListener('input', triggerSave);
-document.getElementById('note-title').addEventListener('input', triggerSave);
-
-setupPasteImage(document.getElementById('editor'));
-
-// ════════════════════════════════════════════════════
-//  INIT
-// ════════════════════════════════════════════════════
+// INIT
 (async () => {
   const isShare = await checkShareMode();
   if (isShare) return;
-
-  if (sessionStorage.getItem('gn_auth') === '1') {
-    // Load gist config
-    try {
-      const gist = await GH.getGist();
-      gistConfig = JSON.parse(gist.files['notepad-config.json'].content);
-      showApp();
-    } catch {
-      sessionStorage.removeItem('gn_auth');
-    }
-  }
-  // else: show login (default)
+  if (sessionStorage.getItem('gn_auth') === '1') showApp();
 })();
 </script>
 </body>
