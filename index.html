@@ -380,6 +380,11 @@ body {
       <label>Mật khẩu</label>
       <input id="inp-pass" type="password" placeholder="••••••••" autocomplete="current-password"/>
     </div>
+    <div class="login-field">
+      <label>GitHub Token</label>
+      <input id="inp-token" type="password" placeholder="ghp_..." autocomplete="off"/>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:5px">Lưu trên máy bạn, không lưu lên server</div>
+    </div>
     <button class="btn-login" id="btn-login">Đăng nhập</button>
     <div class="login-error" id="login-error"></div>
   </div>
@@ -472,7 +477,7 @@ body {
 //  CONFIG
 // ════════════════════════════════════════════════════
 const CONFIG = {
-  token:   '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',
+  get token() { return sessionStorage.getItem('gn_token') || ''; },
   owner:   'Kagerzzz',
   repo:    'GitNote',
   gistId:  '246765d4d1719ec88497a14016cb8da3',
@@ -520,7 +525,11 @@ const GH = {
   },
   async getGist() {
     const r = await fetch(`https://api.github.com/gists/${CONFIG.gistId}`, { headers: this.headers() });
-    return r.json();
+    const data = await r.json();
+    console.log('Gist response status:', r.status, data);
+    if (!r.ok) throw new Error(`GitHub API lỗi ${r.status}: ${data.message || JSON.stringify(data)}`);
+    if (!data.files || !data.files['notepad-config.json']) throw new Error('Không tìm thấy file notepad-config.json trong Gist');
+    return data;
   },
   async updateGist(content) {
     await fetch(`https://api.github.com/gists/${CONFIG.gistId}`, {
@@ -640,14 +649,22 @@ function bodyToHtml(body) {
 //  LOGIN
 // ════════════════════════════════════════════════════
 async function doLogin() {
-  const user = document.getElementById('inp-user').value.trim();
-  const pass = document.getElementById('inp-pass').value;
+  const user  = document.getElementById('inp-user').value.trim();
+  const pass  = document.getElementById('inp-pass').value;
+  const token = document.getElementById('inp-token').value.trim();
   const errEl = document.getElementById('login-error');
-  const btn = document.getElementById('btn-login');
+  const btn   = document.getElementById('btn-login');
 
-  if (!user || !pass) { errEl.textContent = 'Vui lòng nhập đầy đủ.'; return; }
+  if (!user || !pass || !token) { errEl.textContent = 'Vui lòng nhập đầy đủ (kể cả GitHub Token).'; return; }
+  if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
+    errEl.textContent = 'Token không hợp lệ, phải bắt đầu bằng ghp_';
+    return;
+  }
 
   btn.textContent = 'Đang xác thực...'; btn.disabled = true;
+
+  // Lưu token tạm để GH.headers() dùng được
+  sessionStorage.setItem('gn_token', token);
 
   try {
     const gist = await GH.getGist();
@@ -655,13 +672,16 @@ async function doLogin() {
     const hashed = await sha256(pass);
     if (user !== gistConfig.username || hashed !== gistConfig.password) {
       errEl.textContent = 'Sai tài khoản hoặc mật khẩu.';
+      sessionStorage.removeItem('gn_token');
       btn.textContent = 'Đăng nhập'; btn.disabled = false;
       return;
     }
     sessionStorage.setItem('gn_auth', '1');
     showApp();
   } catch(e) {
-    errEl.textContent = 'Lỗi kết nối GitHub.';
+    console.error('Login error:', e);
+    sessionStorage.removeItem('gn_token');
+    errEl.textContent = 'Lỗi: ' + (e.message || JSON.stringify(e));
     btn.textContent = 'Đăng nhập'; btn.disabled = false;
   }
 }
@@ -921,6 +941,7 @@ document.getElementById('btn-new').addEventListener('click', createNote);
 
 document.getElementById('btn-logout').addEventListener('click', () => {
   sessionStorage.removeItem('gn_auth');
+  sessionStorage.removeItem('gn_token');
   location.reload();
 });
 
