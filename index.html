@@ -383,10 +383,16 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
       <div class="perm-opt sel" data-perm="view">👁 Chỉ xem</div>
       <div class="perm-opt"     data-perm="edit">✏️ Có thể sửa</div>
     </div>
+    <div class="field" style="margin-top:10px">
+      <label>Đường dẫn tùy chỉnh (Slug)</label>
+      <input id="share-slug-inp" type="text" placeholder="vi-du: ghi-chu-quan-trong" style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; color: var(--text); font-family: var(--mono); font-size: 13px; outline: none; width: 100%;"/>
+    </div>
     <div class="link-row">
       <input id="share-link" type="text" readonly placeholder="Đang tạo link..."/>
       <button class="btn-copy" id="btn-copy">Sao chép</button>
     </div>
+    </div>
+    <button class="btn-primary" id="btn-save-share" style="margin-top:5px">Cập nhật link</button>
     <div class="modal-foot">
       <button class="btn-ghost" id="btn-modal-close">Đóng</button>
     </div>
@@ -433,7 +439,7 @@ let notes = [], current = null, saveTimer = null, sharePerm = 'view', shareGen =
 
 // SHARE MODE
 async function checkShareMode() {
-  const token = new URLSearchParams(location.search).get('share');
+const token = new URLSearchParams(location.search).get('n'); // Đổi thành 'n' cho ngắn
   if (!token) return false;
   document.getElementById('login-screen').style.display = 'none';
   const screen = document.getElementById('share-screen');
@@ -714,17 +720,38 @@ document.querySelectorAll('.perm-opt').forEach(btn => {
   });
 });
 
-async function genShareLink() {
-  if (shareGen) return;
-  shareGen = true;
+async function genShareLink(isManualUpdate = false) {
+  if (!current) return;
+  const slugInp = document.getElementById('share-slug-inp');
+  
+  // Nếu mở modal lần đầu, tự điền slug hiện tại từ data (nếu có)
+  if (!isManualUpdate && current.share_token) {
+    slugInp.value = current.share_token;
+    document.querySelectorAll('.perm-opt').forEach(b => {
+      b.classList.toggle('sel', b.dataset.perm === current.share_perm);
+    });
+    sharePerm = current.share_perm || 'view';
+  }
+
   try {
-    const res = await api({ action: 'createShare', id: current.id, perm: sharePerm });
-    const url = `${location.origin}${location.pathname}?share=${res.token}`;
+    const payload = { 
+      action: 'createShare', 
+      id: current.id, 
+      perm: sharePerm,
+      slug: isManualUpdate ? slugInp.value.trim() : "" 
+    };
+    
+    const res = await api(payload);
+    current.share_token = res.token;
+    current.share_perm = sharePerm;
+    
+    // Tạo URL đẹp hơn
+    const url = `${location.origin}${location.pathname}?n=${res.token}`;
     document.getElementById('share-link').value = url;
+    if (isManualUpdate) toast('✓ Đã cập nhật đường dẫn');
   } catch(e) {
     document.getElementById('share-link').value = 'Lỗi: ' + e.message;
   }
-  shareGen = false;
 }
 
 document.getElementById('btn-copy').addEventListener('click', () => {
@@ -734,7 +761,15 @@ document.getElementById('btn-copy').addEventListener('click', () => {
     setTimeout(() => { btn.textContent = 'Sao chép'; btn.classList.remove('ok'); }, 2000);
   });
 });
+// Sự kiện nút "Cập nhật link" trong Modal
+document.getElementById('btn-save-share').addEventListener('click', () => genShareLink(true));
 
+// Chỉnh sửa sự kiện bấm nút Share ở ngoài toolbar
+document.getElementById('btn-share').addEventListener('click', () => {
+  if (!current) return;
+  document.getElementById('share-overlay').classList.add('open');
+  genShareLink(false); // Mở ra là lấy link hiện tại, không tự đổi
+});
 // SEARCH
 document.getElementById('search-inp').addEventListener('input', e => renderList(e.target.value));
 
