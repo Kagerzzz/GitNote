@@ -657,6 +657,7 @@ function setupPaste(el) {
           const res = await api({ action: 'uploadImage', base64: pure, mimeType: blob.type, filename: 'img_'+Date.now()+'.png' });
           const img = document.createElement('img');
           img.src = res.url;
+          img.setAttribute('referrerpolicy', 'no-referrer');
           ph.replaceWith(img);
           toast('✓ Đã chèn ảnh');
         } catch(err) {
