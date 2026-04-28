@@ -261,7 +261,34 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
 }
 .btn-ghost:hover { border-color: var(--border2); color: var(--text); }
 
-/* TOAST */
+/* DRAG & DROP */
+.note-item[draggable="true"] { cursor: grab; }
+.note-item[draggable="true"]:active { cursor: grabbing; }
+.note-item.drag-over {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+.note-item.dragging {
+  opacity: .4;
+}
+.drag-handle {
+  color: var(--text-3); font-size: 13px; flex-shrink: 0;
+  opacity: 0; transition: opacity .12s; cursor: grab; padding: 2px 2px; line-height: 1;
+  user-select: none;
+}
+.note-item:hover .drag-handle { opacity: 1; }
+
+/* MANUAL SAVE BUTTON */
+.btn-save-manual {
+  background: none; border: 1px solid var(--border2); color: var(--text-2);
+  border-radius: 7px; padding: 5px 12px; font-family: var(--mono); font-size: 12px;
+  cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 5px;
+}
+.btn-save-manual:hover { border-color: var(--green); color: var(--green); }
+.btn-save-manual.saving { border-color: var(--accent); color: var(--accent); }
+.btn-save-manual.saved  { border-color: var(--green);  color: var(--green); }
+.btn-save-manual.error  { border-color: var(--red);    color: var(--red); }
+
 #toast {
   position: fixed; bottom: 24px; left: 50%;
   transform: translateX(-50%) translateY(8px);
@@ -363,6 +390,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
           <button class="tb-btn" data-cmd="link"                title="Link">↗</button>
           <div class="toolbar-right">
             <span class="save-indicator" id="save-ind"></span>
+            <button class="btn-save-manual" id="btn-save-manual" title="Lưu thủ công (Ctrl+S)">💾 Lưu</button>
             <button class="btn-share-note" id="btn-share">⤤ Chia sẻ</button>
           </div>
         </div>
@@ -434,6 +462,7 @@ function esc(s) {
 
 // STATE
 let notes = [], current = null, saveTimer = null, sharePerm = 'view', shareGen = false;
+let dragSrcId = null; // drag & drop state
 
 // SHARE MODE
 async function checkShareMode() {
@@ -527,7 +556,7 @@ async function loadNotes() {
   try {
     const data = await api({ action: 'getNotes' });
     notes = Array.isArray(data) ? data : [];
-    notes.sort((a,b) => new Date(b.updated_at) - new Date(a.updated_at));
+    // Server đã sort theo sort_order, giữ nguyên thứ tự đó
     renderList();
   } catch(e) {
     list.innerHTML = `<div class="list-empty" style="color:var(--red)">Lỗi tải:<br>${esc(e.message)}</div>`;
@@ -550,16 +579,63 @@ function renderList(filter='') {
     const div = document.createElement('div');
     div.className = 'note-item' + (current && current.id === n.id ? ' active' : '');
     div.dataset.id = n.id;
+    div.draggable = true;
     div.innerHTML = `
+      <span class="drag-handle" title="Kéo để sắp xếp">⠿</span>
       <div class="note-item-info">
         <div class="note-title">${esc(n.title||'Không có tiêu đề')}</div>
         <div class="note-date">${ds}</div>
       </div>
       <button class="note-del" title="Xóa">✕</button>`;
-    div.addEventListener('click', e => { if(e.target.classList.contains('note-del')) return; openNote(n); });
+    div.addEventListener('click', e => { if(e.target.classList.contains('note-del') || e.target.classList.contains('drag-handle')) return; openNote(n); });
     div.querySelector('.note-del').addEventListener('click', e => { e.stopPropagation(); deleteNote(n); });
+
+    // Drag & drop events
+    div.addEventListener('dragstart', e => {
+      dragSrcId = n.id;
+      div.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    div.addEventListener('dragend', () => {
+      div.classList.remove('dragging');
+      document.querySelectorAll('.note-item').forEach(el => el.classList.remove('drag-over'));
+    });
+    div.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      document.querySelectorAll('.note-item').forEach(el => el.classList.remove('drag-over'));
+      if (n.id !== dragSrcId) div.classList.add('drag-over');
+    });
+    div.addEventListener('dragleave', () => div.classList.remove('drag-over'));
+    div.addEventListener('drop', e => {
+      e.preventDefault();
+      div.classList.remove('drag-over');
+      if (!dragSrcId || dragSrcId === n.id) return;
+      // Tìm vị trí và hoán đổi trong mảng notes
+      const srcIdx = notes.findIndex(x => x.id === dragSrcId);
+      const dstIdx = notes.findIndex(x => x.id === n.id);
+      if (srcIdx === -1 || dstIdx === -1) return;
+      const [moved] = notes.splice(srcIdx, 1);
+      notes.splice(dstIdx, 0, moved);
+      // Gán lại sort_order theo thứ tự mới
+      notes.forEach((note, i) => { note.sort_order = i; });
+      renderList(document.getElementById('search-inp').value);
+      // Lưu thứ tự lên server
+      saveOrder();
+    });
+
     list.appendChild(div);
   });
+}
+
+// LƯU THỨ TỰ LÊN SERVER
+async function saveOrder() {
+  try {
+    const order = notes.map((n, i) => ({ id: n.id, sort_order: i }));
+    await api({ action: 'reorderNotes', order });
+  } catch(e) {
+    toast('Lỗi lưu thứ tự: ' + e.message);
+  }
 }
 
 // OPEN NOTE
@@ -579,8 +655,11 @@ document.getElementById('btn-new').addEventListener('click', async () => {
   btn.disabled = true;
   try {
     const res = await api({ action: 'createNote', title: 'Ghi chú mới', content: '' });
-    const n = { id: res.id, title: 'Ghi chú mới', content: '', created_at: res.created_at, updated_at: res.created_at };
+    const n = { id: res.id, title: 'Ghi chú mới', content: '', created_at: res.created_at, updated_at: res.created_at, sort_order: 0 };
     notes.unshift(n);
+    // Cập nhật sort_order của các note còn lại
+    notes.forEach((note, i) => { note.sort_order = i; });
+    saveOrder();
     renderList(document.getElementById('search-inp').value);
     openNote(n);
     setTimeout(() => { const t = document.getElementById('note-title-inp'); t.focus(); t.select(); }, 50);
@@ -624,7 +703,7 @@ function triggerSave() {
       current.updated_at = new Date().toISOString();
       const idx = notes.findIndex(n => n.id === current.id);
       if (idx !== -1) notes[idx] = {...notes[idx], title, content, updated_at: current.updated_at};
-      notes.sort((a,b) => new Date(b.updated_at) - new Date(a.updated_at));
+      // KHÔNG sort lại theo updated_at để giữ thứ tự kéo thả
       renderList(document.getElementById('search-inp').value);
       setSaveInd('saved', '✓ đã lưu');
       setTimeout(() => setSaveInd('',''), 2500);
@@ -634,6 +713,47 @@ function triggerSave() {
 
 document.getElementById('note-title-inp').addEventListener('input', triggerSave);
 document.getElementById('editor').addEventListener('input', triggerSave);
+
+// NÚT LƯU THỦ CÔNG
+async function manualSave() {
+  if (!current) return;
+  const btn = document.getElementById('btn-save-manual');
+  const title   = document.getElementById('note-title-inp').value || 'Không có tiêu đề';
+  const content = document.getElementById('editor').innerHTML;
+  // Hủy auto-save đang chờ (nếu có)
+  clearTimeout(saveTimer);
+  btn.textContent = '⏳ Đang lưu...'; btn.className = 'btn-save-manual saving'; btn.disabled = true;
+  setSaveInd('saving', '● lưu...');
+  try {
+    await api({ action: 'updateNote', id: current.id, title, content });
+    current.title = title; current.content = content;
+    current.updated_at = new Date().toISOString();
+    const idx = notes.findIndex(n => n.id === current.id);
+    if (idx !== -1) notes[idx] = {...notes[idx], title, content, updated_at: current.updated_at};
+    renderList(document.getElementById('search-inp').value);
+    btn.textContent = '✓ Đã lưu'; btn.className = 'btn-save-manual saved';
+    setSaveInd('saved', '✓ đã lưu');
+    setTimeout(() => {
+      btn.textContent = '💾 Lưu'; btn.className = 'btn-save-manual'; btn.disabled = false;
+      setSaveInd('','');
+    }, 2000);
+  } catch(e) {
+    btn.textContent = '✕ Lỗi'; btn.className = 'btn-save-manual error';
+    setSaveInd('error', '✕ lỗi lưu');
+    setTimeout(() => { btn.textContent = '💾 Lưu'; btn.className = 'btn-save-manual'; btn.disabled = false; }, 2500);
+    toast('Lỗi lưu: ' + e.message);
+  }
+}
+
+document.getElementById('btn-save-manual').addEventListener('click', manualSave);
+
+// Ctrl+S / Cmd+S
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    manualSave();
+  }
+});
 
 // TOOLBAR
 document.querySelectorAll('.perm-opt').forEach(btn => {
