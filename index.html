@@ -194,6 +194,15 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
   cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 5px;
 }
 .btn-share-note:hover { border-color: var(--accent); color: var(--accent); }
+.btn-save-manual {
+  background: none; border: 1px solid var(--border2); color: var(--text-2);
+  border-radius: 7px; padding: 5px 12px; font-family: var(--mono); font-size: 12px;
+  cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 5px;
+}
+.btn-save-manual:hover { border-color: var(--green); color: var(--green); }
+.btn-save-manual.saving { border-color: var(--accent); color: var(--accent); }
+.btn-save-manual.saved  { border-color: var(--green);  color: var(--green); }
+.btn-save-manual.error  { border-color: var(--red);    color: var(--red); }
 
 /* EDITOR CONTENT */
 #editor-wrap { flex: 1; overflow-y: auto; padding: 40px 64px; }
@@ -261,33 +270,115 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
 }
 .btn-ghost:hover { border-color: var(--border2); color: var(--text); }
 
-/* DRAG & DROP */
-.note-item[draggable="true"] { cursor: grab; }
-.note-item[draggable="true"]:active { cursor: grabbing; }
-.note-item.drag-over {
-  background: var(--accent-dim);
-  border-color: var(--accent);
-}
-.note-item.dragging {
-  opacity: .4;
-}
-.drag-handle {
-  color: var(--text-3); font-size: 13px; flex-shrink: 0;
-  opacity: 0; transition: opacity .12s; cursor: grab; padding: 2px 2px; line-height: 1;
-  user-select: none;
-}
-.note-item:hover .drag-handle { opacity: 1; }
+/* TOAST */
 
-/* MANUAL SAVE BUTTON */
-.btn-save-manual {
-  background: none; border: 1px solid var(--border2); color: var(--text-2);
-  border-radius: 7px; padding: 5px 12px; font-family: var(--mono); font-size: 12px;
-  cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 5px;
+/* ===== COLOR / HIGHLIGHT PICKER ===== */
+.color-picker-pop {
+  position: absolute; top: calc(100% + 6px); left: 0;
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 10px; padding: 10px; z-index: 200;
+  box-shadow: 0 8px 32px rgba(0,0,0,.5);
+  display: none; flex-direction: column; gap: 8px; min-width: 192px;
 }
-.btn-save-manual:hover { border-color: var(--green); color: var(--green); }
-.btn-save-manual.saving { border-color: var(--accent); color: var(--accent); }
-.btn-save-manual.saved  { border-color: var(--green);  color: var(--green); }
-.btn-save-manual.error  { border-color: var(--red);    color: var(--red); }
+.color-picker-pop.open { display: flex; }
+.color-picker-pop label {
+  font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 1px;
+}
+.color-swatches { display: flex; gap: 5px; flex-wrap: wrap; }
+.swatch {
+  width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent;
+  cursor: pointer; transition: transform .12s, border-color .12s;
+}
+.swatch:hover { transform: scale(1.18); border-color: rgba(255,255,255,.35); }
+.swatch.clear {
+  background: none !important; border: 1px dashed var(--border2) !important;
+  font-size: 13px; display: flex; align-items: center; justify-content: center;
+  color: var(--text-3);
+}
+.tb-btn-color {
+  background: none; border: none; color: var(--text-2); height: 28px;
+  border-radius: 5px; cursor: pointer; font-family: var(--mono); font-size: 11px;
+  display: flex; align-items: center; justify-content: center; gap: 3px;
+  transition: all .12s; flex-shrink: 0; position: relative; padding: 0 6px;
+}
+.tb-btn-color:hover { background: var(--surface2); color: var(--text); }
+.color-underline {
+  height: 3px; width: 100%; border-radius: 2px; position: absolute;
+  bottom: 3px; left: 0; background: currentColor; pointer-events: none;
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+#sidebar-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5);
+  z-index: 90; backdrop-filter: blur(2px);
+}
+.hamburger {
+  display: none; background: none; border: none; color: var(--text-2);
+  font-size: 20px; cursor: pointer; padding: 4px 8px; border-radius: 6px;
+  line-height: 1; transition: color .15s;
+}
+.hamburger:hover { color: var(--text); }
+
+@media (max-width: 768px) {
+  :root { --sidebar-w: 280px; }
+
+  /* Topbar */
+  .topbar { padding: 0 12px; gap: 8px; }
+  .hamburger { display: flex; align-items: center; }
+  .topbar-logo { font-size: 16px; }
+  .icon-btn { font-size: 11px; padding: 5px 8px; }
+
+  /* Sidebar: drawer từ trái */
+  #sidebar {
+    position: fixed; top: 0; left: 0; height: 100vh;
+    z-index: 100; transform: translateX(-100%);
+    transition: transform .25s cubic-bezier(.4,0,.2,1);
+    box-shadow: 4px 0 32px rgba(0,0,0,.4);
+  }
+  #sidebar.open {
+    transform: translateX(0);
+  }
+  #sidebar-overlay.open { display: block; }
+
+  /* Workspace: không bị đẩy bởi sidebar */
+  .workspace { position: relative; }
+
+  /* Editor: padding nhỏ hơn trên mobile */
+  #editor-wrap { padding: 20px 16px; }
+  #editor { min-height: calc(100vh - 160px); font-size: 13px; }
+
+  /* Toolbar: wrap + cuộn ngang */
+  .toolbar {
+    padding: 0 8px; gap: 2px; overflow-x: auto; flex-wrap: nowrap;
+    scrollbar-width: none; min-height: 42px;
+  }
+  .toolbar::-webkit-scrollbar { display: none; }
+  #note-title-inp { font-size: 14px; min-width: 80px; }
+  .toolbar-right { flex-shrink: 0; }
+  .btn-share-note { padding: 5px 8px; font-size: 11px; }
+  .btn-save-manual { padding: 5px 8px; font-size: 11px; }
+  .save-indicator { display: none; }
+
+  /* Modal */
+  .modal { width: calc(100vw - 32px); padding: 20px; }
+
+  /* Login */
+  .login-wrap { width: calc(100vw - 40px); }
+
+  /* Share screen */
+  .share-body { padding: 24px 16px; }
+
+  /* Toast xuống thấp hơn trên mobile (tránh safe area) */
+  #toast { bottom: 32px; }
+
+  /* Color picker căn lại trên mobile */
+  .color-picker-pop { left: auto; right: 0; }
+}
+
+@media (max-width: 480px) {
+  .topbar { height: 46px; }
+  #editor-wrap { padding: 16px 12px; }
+}
 
 #toast {
   position: fixed; bottom: 24px; left: 50%;
@@ -353,10 +444,12 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
 <!-- MAIN APP -->
 <div id="app">
   <div class="topbar">
+    <button class="hamburger" id="btn-hamburger" title="Mở danh sách">☰</button>
     <div class="topbar-logo">GitNote</div>
     <button class="icon-btn danger" id="btn-logout">↩ Đăng xuất</button>
   </div>
   <div class="workspace">
+    <div id="sidebar-overlay"></div>
     <div id="sidebar">
       <div class="sidebar-top">
         <div class="search-wrap">
@@ -388,6 +481,29 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
           <button class="tb-btn" data-cmd="insertOrderedList"   title="Numbered">1≡</button>
           <button class="tb-btn" data-cmd="blockquote"          title="Blockquote">❝</button>
           <button class="tb-btn" data-cmd="link"                title="Link">↗</button>
+          <div class="tb-sep"></div>
+          <!-- Màu chữ -->
+          <div style="position:relative">
+            <button class="tb-btn-color" id="btn-fgcolor" title="Màu chữ">
+              <span style="font-size:13px;font-weight:600">A</span>
+              <div class="color-underline" id="fgcolor-bar" style="background:#5b9cf6"></div>
+            </button>
+            <div class="color-picker-pop" id="pop-fgcolor">
+              <label>Màu chữ</label>
+              <div class="color-swatches" id="sw-fg"></div>
+            </div>
+          </div>
+          <!-- Highlight -->
+          <div style="position:relative">
+            <button class="tb-btn-color" id="btn-bgcolor" title="Highlight">
+              <span style="font-size:13px">▐</span>
+              <div class="color-underline" id="bgcolor-bar" style="background:#fbbf24"></div>
+            </button>
+            <div class="color-picker-pop" id="pop-bgcolor">
+              <label>Highlight</label>
+              <div class="color-swatches" id="sw-bg"></div>
+            </div>
+          </div>
           <div class="toolbar-right">
             <span class="save-indicator" id="save-ind"></span>
             <button class="btn-save-manual" id="btn-save-manual" title="Lưu thủ công (Ctrl+S)">💾 Lưu</button>
@@ -462,7 +578,6 @@ function esc(s) {
 
 // STATE
 let notes = [], current = null, saveTimer = null, sharePerm = 'view', shareGen = false;
-let dragSrcId = null; // drag & drop state
 
 // SHARE MODE
 async function checkShareMode() {
@@ -556,7 +671,7 @@ async function loadNotes() {
   try {
     const data = await api({ action: 'getNotes' });
     notes = Array.isArray(data) ? data : [];
-    // Server đã sort theo sort_order, giữ nguyên thứ tự đó
+    notes.sort((a,b) => new Date(b.updated_at) - new Date(a.updated_at));
     renderList();
   } catch(e) {
     list.innerHTML = `<div class="list-empty" style="color:var(--red)">Lỗi tải:<br>${esc(e.message)}</div>`;
@@ -579,74 +694,16 @@ function renderList(filter='') {
     const div = document.createElement('div');
     div.className = 'note-item' + (current && current.id === n.id ? ' active' : '');
     div.dataset.id = n.id;
-    div.draggable = true;
     div.innerHTML = `
-      <span class="drag-handle" title="Kéo để sắp xếp">⠿</span>
       <div class="note-item-info">
         <div class="note-title">${esc(n.title||'Không có tiêu đề')}</div>
         <div class="note-date">${ds}</div>
       </div>
       <button class="note-del" title="Xóa">✕</button>`;
-    div.addEventListener('click', e => { if(e.target.classList.contains('note-del') || e.target.classList.contains('drag-handle')) return; openNote(n); });
+    div.addEventListener('click', e => { if(e.target.classList.contains('note-del')) return; openNote(n); });
     div.querySelector('.note-del').addEventListener('click', e => { e.stopPropagation(); deleteNote(n); });
-
-    // Drag & drop events
-    div.addEventListener('dragstart', e => {
-      dragSrcId = n.id;
-      div.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-    });
-    div.addEventListener('dragend', () => {
-      div.classList.remove('dragging');
-      document.querySelectorAll('.note-item').forEach(el => el.classList.remove('drag-over'));
-    });
-    div.addEventListener('dragover', e => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      document.querySelectorAll('.note-item').forEach(el => el.classList.remove('drag-over'));
-      if (n.id !== dragSrcId) div.classList.add('drag-over');
-    });
-    div.addEventListener('dragleave', () => div.classList.remove('drag-over'));
-    div.addEventListener('drop', e => {
-      e.preventDefault();
-      div.classList.remove('drag-over');
-      if (!dragSrcId || dragSrcId === n.id) return;
-      // Tìm vị trí và hoán đổi trong mảng notes
-      const srcIdx = notes.findIndex(x => x.id === dragSrcId);
-      const dstIdx = notes.findIndex(x => x.id === n.id);
-      if (srcIdx === -1 || dstIdx === -1) return;
-      const [moved] = notes.splice(srcIdx, 1);
-      notes.splice(dstIdx, 0, moved);
-      // Gán lại sort_order theo thứ tự mới
-      notes.forEach((note, i) => { note.sort_order = i; });
-      renderList(document.getElementById('search-inp').value);
-      // Lưu thứ tự lên server
-      saveOrder();
-    });
-
     list.appendChild(div);
   });
-}
-
-// LƯU THỨ TỰ LÊN SERVER
-async function saveOrder() {
-  try {
-    const order = notes.map((n, i) => ({ id: n.id, sort_order: i }));
-    await api({ action: 'reorderNotes', order });
-  } catch(e) {
-    toast('Lỗi lưu thứ tự: ' + e.message);
-  }
-}
-
-// OPEN NOTE
-function openNote(n) {
-  current = n;
-  document.getElementById('empty-state').style.display = 'none';
-  document.getElementById('editor-panel').style.display = 'flex';
-  document.getElementById('note-title-inp').value = n.title || '';
-  document.getElementById('editor').innerHTML = n.content || '';
-  setSaveInd('','');
-  renderList(document.getElementById('search-inp').value);
 }
 
 // CREATE
@@ -655,11 +712,8 @@ document.getElementById('btn-new').addEventListener('click', async () => {
   btn.disabled = true;
   try {
     const res = await api({ action: 'createNote', title: 'Ghi chú mới', content: '' });
-    const n = { id: res.id, title: 'Ghi chú mới', content: '', created_at: res.created_at, updated_at: res.created_at, sort_order: 0 };
+    const n = { id: res.id, title: 'Ghi chú mới', content: '', created_at: res.created_at, updated_at: res.created_at };
     notes.unshift(n);
-    // Cập nhật sort_order của các note còn lại
-    notes.forEach((note, i) => { note.sort_order = i; });
-    saveOrder();
     renderList(document.getElementById('search-inp').value);
     openNote(n);
     setTimeout(() => { const t = document.getElementById('note-title-inp'); t.focus(); t.select(); }, 50);
@@ -703,7 +757,7 @@ function triggerSave() {
       current.updated_at = new Date().toISOString();
       const idx = notes.findIndex(n => n.id === current.id);
       if (idx !== -1) notes[idx] = {...notes[idx], title, content, updated_at: current.updated_at};
-      // KHÔNG sort lại theo updated_at để giữ thứ tự kéo thả
+      notes.sort((a,b) => new Date(b.updated_at) - new Date(a.updated_at));
       renderList(document.getElementById('search-inp').value);
       setSaveInd('saved', '✓ đã lưu');
       setTimeout(() => setSaveInd('',''), 2500);
@@ -714,13 +768,78 @@ function triggerSave() {
 document.getElementById('note-title-inp').addEventListener('input', triggerSave);
 document.getElementById('editor').addEventListener('input', triggerSave);
 
-// NÚT LƯU THỦ CÔNG
+// ===== COLOR / HIGHLIGHT PICKER =====
+const FG_COLORS = ['#f87171','#fb923c','#fbbf24','#4ade80','#34d399','#38bdf8','#818cf8','#e879f9','#ffffff','#94a3b8'];
+const BG_COLORS = ['rgba(248,113,113,.35)','rgba(251,146,60,.35)','rgba(251,191,36,.4)','rgba(74,222,128,.3)','rgba(52,211,153,.3)','rgba(56,189,248,.3)','rgba(129,140,248,.3)','rgba(232,121,249,.3)','rgba(255,255,255,.15)','rgba(148,163,184,.25)'];
+
+function buildSwatches(containerId, colors, applyFn, barId) {
+  const wrap = document.getElementById(containerId);
+  const clear = document.createElement('div');
+  clear.className = 'swatch clear'; clear.title = 'Xóa màu'; clear.textContent = '✕';
+  clear.addEventListener('mousedown', e => { e.preventDefault(); applyFn(null); closeAllPickers(); });
+  wrap.appendChild(clear);
+  colors.forEach(color => {
+    const s = document.createElement('div');
+    s.className = 'swatch'; s.style.background = color; s.title = color;
+    s.addEventListener('mousedown', e => {
+      e.preventDefault();
+      applyFn(color);
+      document.getElementById(barId).style.background = color;
+      closeAllPickers();
+    });
+    wrap.appendChild(s);
+  });
+}
+
+function closeAllPickers() {
+  document.getElementById('pop-fgcolor').classList.remove('open');
+  document.getElementById('pop-bgcolor').classList.remove('open');
+}
+
+buildSwatches('sw-fg', FG_COLORS, color => {
+  if (color) document.execCommand('foreColor', false, color);
+  else document.execCommand('removeFormat', false, null);
+}, 'fgcolor-bar');
+
+buildSwatches('sw-bg', BG_COLORS, color => {
+  if (color) document.execCommand('hiliteColor', false, color);
+  else document.execCommand('hiliteColor', false, 'transparent');
+}, 'bgcolor-bar');
+
+document.getElementById('btn-fgcolor').addEventListener('click', e => {
+  e.stopPropagation();
+  const pop = document.getElementById('pop-fgcolor');
+  document.getElementById('pop-bgcolor').classList.remove('open');
+  pop.classList.toggle('open');
+});
+document.getElementById('btn-bgcolor').addEventListener('click', e => {
+  e.stopPropagation();
+  const pop = document.getElementById('pop-bgcolor');
+  document.getElementById('pop-fgcolor').classList.remove('open');
+  pop.classList.toggle('open');
+});
+document.addEventListener('click', closeAllPickers);
+document.getElementById('pop-fgcolor').addEventListener('click', e => e.stopPropagation());
+document.getElementById('pop-bgcolor').addEventListener('click', e => e.stopPropagation());
+
+// ===== MOBILE DRAWER =====
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebar-overlay').classList.add('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
+document.getElementById('btn-hamburger').addEventListener('click', openSidebar);
+document.getElementById('sidebar-overlay').addEventListener('click', closeSidebar);
+
+// ===== NÚT LƯU THỦ CÔNG =====
 async function manualSave() {
   if (!current) return;
   const btn = document.getElementById('btn-save-manual');
   const title   = document.getElementById('note-title-inp').value || 'Không có tiêu đề';
   const content = document.getElementById('editor').innerHTML;
-  // Hủy auto-save đang chờ (nếu có)
   clearTimeout(saveTimer);
   btn.textContent = '⏳ Đang lưu...'; btn.className = 'btn-save-manual saving'; btn.disabled = true;
   setSaveInd('saving', '● lưu...');
@@ -744,16 +863,22 @@ async function manualSave() {
     toast('Lỗi lưu: ' + e.message);
   }
 }
-
 document.getElementById('btn-save-manual').addEventListener('click', manualSave);
-
-// Ctrl+S / Cmd+S
 document.addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-    e.preventDefault();
-    manualSave();
-  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); manualSave(); }
 });
+
+// Đóng sidebar khi mở note trên mobile
+function openNote(n) {
+  current = n;
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('editor-panel').style.display = 'flex';
+  document.getElementById('note-title-inp').value = n.title || '';
+  document.getElementById('editor').innerHTML = n.content || '';
+  setSaveInd('','');
+  renderList(document.getElementById('search-inp').value);
+  if (window.innerWidth <= 768) closeSidebar();
+}
 
 // TOOLBAR
 document.querySelectorAll('.perm-opt').forEach(btn => {
