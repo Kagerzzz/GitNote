@@ -133,7 +133,11 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
   padding: 10px 12px; border-radius: 8px; cursor: pointer; transition: background .12s;
   display: flex; align-items: flex-start; gap: 8px; position: relative;
   border: 1px solid transparent; margin-bottom: 2px;
+  cursor: grab;
 }
+.note-item:active { cursor: grabbing; }
+.note-item.dragging { opacity: 0.4; background: var(--surface2); }
+.note-item.drag-over { border-top: 2px solid var(--accent); }
 .note-item:hover { background: var(--surface2); }
 .note-item.active { background: var(--surface2); border-color: var(--border); }
 .note-item.active::before {
@@ -361,10 +365,10 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
           <button class="tb-btn" data-cmd="insertOrderedList"   title="Numbered">1≡</button>
           <button class="tb-btn" data-cmd="blockquote"          title="Blockquote">❝</button>
           <button class="tb-btn" data-cmd="link"                title="Link">↗</button>
-          <div class="toolbar-right">
-            <span class="save-indicator" id="save-ind"></span>
-            <button class="btn-share-note" id="btn-share">⤤ Chia sẻ</button>
-          </div>
+        <div class="toolbar-right">
+          <span class="save-indicator" id="save-ind"></span>
+          <button class="btn-share-note" id="btn-manual-save">💾 Lưu</button> <button class="btn-share-note" id="btn-share">⤤ Chia sẻ</button>
+        </div>
         </div>
         <div id="editor-wrap">
           <div id="editor" contenteditable="true" spellcheck="false"></div>
@@ -527,6 +531,12 @@ async function loadNotes() {
   try {
     const data = await api({ action: 'getNotes' });
     notes = Array.isArray(data) ? data : [];
+    // Đổi: Sắp xếp theo thứ tự kéo thả (Cột H)
+    notes.sort((a,b) => (a.order_index || 0) - (b.order_index || 0));
+    renderList();
+  try {
+    const data = await api({ action: 'getNotes' });
+    notes = Array.isArray(data) ? data : [];
     notes.sort((a,b) => new Date(b.updated_at) - new Date(a.updated_at));
     renderList();
   } catch(e) {
@@ -544,20 +554,61 @@ function renderList(filter='') {
     return;
   }
   list.innerHTML = '';
-  filtered.forEach(n => {
+  filtered.forEach((n, index) => {
     const d = new Date(n.updated_at);
     const ds = d.toLocaleDateString('vi-VN', {day:'2-digit',month:'2-digit',year:'numeric'});
     const div = document.createElement('div');
     div.className = 'note-item' + (current && current.id === n.id ? ' active' : '');
     div.dataset.id = n.id;
+    // Bật kéo thả
+    div.draggable = true; 
+    
     div.innerHTML = `
       <div class="note-item-info">
         <div class="note-title">${esc(n.title||'Không có tiêu đề')}</div>
         <div class="note-date">${ds}</div>
       </div>
       <button class="note-del" title="Xóa">✕</button>`;
+      
     div.addEventListener('click', e => { if(e.target.classList.contains('note-del')) return; openNote(n); });
     div.querySelector('.note-del').addEventListener('click', e => { e.stopPropagation(); deleteNote(n); });
+
+    // --- LOGIC KÉO THẢ ---
+    div.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', n.id);
+      setTimeout(() => div.classList.add('dragging'), 0);
+    });
+    div.addEventListener('dragend', () => div.classList.remove('dragging'));
+    div.addEventListener('dragover', e => {
+      e.preventDefault(); // Cần thiết để cho phép drop
+      div.classList.add('drag-over');
+    });
+    div.addEventListener('dragleave', () => div.classList.remove('drag-over'));
+    div.addEventListener('drop', async e => {
+      e.preventDefault();
+      div.classList.remove('drag-over');
+      const draggedId = e.dataTransfer.getData('text/plain');
+      if (draggedId === n.id) return; // Drop tại chỗ
+
+      // Đảo vị trí trong mảng JS
+      const fromIdx = notes.findIndex(x => x.id === draggedId);
+      const toIdx = notes.findIndex(x => x.id === n.id);
+      const [movedItem] = notes.splice(fromIdx, 1);
+      notes.splice(toIdx, 0, movedItem);
+
+      // Cập nhật lại index cho toàn bộ mảng
+      notes.forEach((note, i) => note.order_index = i);
+      
+      // Render lại giao diện ngay lập tức
+      renderList(document.getElementById('search-inp').value);
+      
+      // Đẩy API lưu order ngầm
+      const orderData = notes.map(note => ({ id: note.id, order: note.order_index }));
+      try {
+        await api({ action: 'reorderNotes', orderData });
+      } catch(err) { toast('Lỗi lưu vị trí: ' + err.message); }
+    });
+    
     list.appendChild(div);
   });
 }
@@ -611,26 +662,38 @@ function setSaveInd(cls, txt) {
   el.textContent = txt;
 }
 
-function triggerSave() {
+// Thêm cờ force để ép lưu ngay lập tức khi bấm nút
+function triggerSave(force = false) {
   if (!current) return;
   setSaveInd('saving', '● lưu...');
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(async () => {
+  
+  const doSave = async () => {
     const title   = document.getElementById('note-title-inp').value || 'Không có tiêu đề';
     const content = document.getElementById('editor').innerHTML;
     try {
       await api({ action: 'updateNote', id: current.id, title, content });
       current.title = title; current.content = content;
       current.updated_at = new Date().toISOString();
-      const idx = notes.findIndex(n => n.id === current.id);
+      const idx = notes.findIndex(n => n.id === current.id);  
       if (idx !== -1) notes[idx] = {...notes[idx], title, content, updated_at: current.updated_at};
-      notes.sort((a,b) => new Date(b.updated_at) - new Date(a.updated_at));
+      
+      // ĐÃ XÓA: Dòng notes.sort theo updated_at để ghi chú không bị nhảy vị trí khi đang gõ
       renderList(document.getElementById('search-inp').value);
       setSaveInd('saved', '✓ đã lưu');
+      if(force) toast('Đã lưu thủ công!');
       setTimeout(() => setSaveInd('',''), 2500);
     } catch(e) { setSaveInd('error', '✕ lỗi lưu'); }
-  }, 1000);
+  };
+
+  if (force) doSave(); // Lưu ngay
+  else saveTimer = setTimeout(doSave, 1000); // Lưu tự động sau 1s
 }
+
+// Bắt sự kiện nút lưu thủ công
+document.getElementById('btn-manual-save').addEventListener('click', () => {
+  triggerSave(true); 
+});
 
 document.getElementById('note-title-inp').addEventListener('input', triggerSave);
 document.getElementById('editor').addEventListener('input', triggerSave);
