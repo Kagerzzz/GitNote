@@ -405,7 +405,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
 </div>
 
 <div id="toast"></div>
-
+<script>
 // CONFIG
 const API = 'https://script.google.com/macros/s/AKfycbzhzQ7O9sZE2J400wf8ILgAal81PsA2p6sSIdfyWuqho8upbWPiOh5VyprHuxD2tvoE/exec';
 
@@ -839,5 +839,6 @@ document.getElementById('btn-logout').addEventListener('click', () => {
   if (isShare) return;
   if (sessionStorage.getItem('gn_auth') === '1') showApp();
 })();
+</script>
 </body>
 </html>
