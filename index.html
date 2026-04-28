@@ -406,7 +406,6 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
 
 <div id="toast"></div>
 
-<script>
 // CONFIG
 const API = 'https://script.google.com/macros/s/AKfycbzhzQ7O9sZE2J400wf8ILgAal81PsA2p6sSIdfyWuqho8upbWPiOh5VyprHuxD2tvoE/exec';
 
@@ -417,9 +416,6 @@ async function api(payload) {
   if (data && data.error) throw new Error(data.error);
   return data;
 }
-
-// SHA256
-
 
 // TOAST
 let _tt;
@@ -441,7 +437,7 @@ let notes = [], current = null, saveTimer = null, sharePerm = 'view', shareGen =
 
 // SHARE MODE
 async function checkShareMode() {
-const token = new URLSearchParams(location.search).get('n'); // Đổi thành 'n' cho ngắn
+const token = new URLSearchParams(location.search).get('n');
   if (!token) return false;
   document.getElementById('login-screen').style.display = 'none';
   const screen = document.getElementById('share-screen');
@@ -485,10 +481,9 @@ const token = new URLSearchParams(location.search).get('n'); // Đổi thành 'n
 }
 
 // LOGIN
-// LOGIN
 async function doLogin() {
   const user  = document.getElementById('inp-user').value.trim();
-  const pass  = document.getElementById('inp-pass').value; // Lấy mật khẩu gốc
+  const pass  = document.getElementById('inp-pass').value;
   const errEl = document.getElementById('login-err');
   const btn   = document.getElementById('btn-login');
   
@@ -497,7 +492,6 @@ async function doLogin() {
   btn.textContent = 'Đang xác thực...'; btn.disabled = true; errEl.textContent = '';
   
   try {
-    // Gửi trực tiếp pass lên server, KHÔNG dùng biến hash nữa
     const res = await api({ action: 'login', username: user, passwordHash: pass });
     
     if (!res.success) {
@@ -531,13 +525,8 @@ async function loadNotes() {
   try {
     const data = await api({ action: 'getNotes' });
     notes = Array.isArray(data) ? data : [];
-    // Đổi: Sắp xếp theo thứ tự kéo thả (Cột H)
+    // Sắp xếp theo thứ tự kéo thả
     notes.sort((a,b) => (a.order_index || 0) - (b.order_index || 0));
-    renderList();
-  try {
-    const data = await api({ action: 'getNotes' });
-    notes = Array.isArray(data) ? data : [];
-    notes.sort((a,b) => new Date(b.updated_at) - new Date(a.updated_at));
     renderList();
   } catch(e) {
     list.innerHTML = `<div class="list-empty" style="color:var(--red)">Lỗi tải:<br>${esc(e.message)}</div>`;
@@ -560,7 +549,6 @@ function renderList(filter='') {
     const div = document.createElement('div');
     div.className = 'note-item' + (current && current.id === n.id ? ' active' : '');
     div.dataset.id = n.id;
-    // Bật kéo thả
     div.draggable = true; 
     
     div.innerHTML = `
@@ -573,14 +561,13 @@ function renderList(filter='') {
     div.addEventListener('click', e => { if(e.target.classList.contains('note-del')) return; openNote(n); });
     div.querySelector('.note-del').addEventListener('click', e => { e.stopPropagation(); deleteNote(n); });
 
-    // --- LOGIC KÉO THẢ ---
     div.addEventListener('dragstart', e => {
       e.dataTransfer.setData('text/plain', n.id);
       setTimeout(() => div.classList.add('dragging'), 0);
     });
     div.addEventListener('dragend', () => div.classList.remove('dragging'));
     div.addEventListener('dragover', e => {
-      e.preventDefault(); // Cần thiết để cho phép drop
+      e.preventDefault();
       div.classList.add('drag-over');
     });
     div.addEventListener('dragleave', () => div.classList.remove('drag-over'));
@@ -588,21 +575,16 @@ function renderList(filter='') {
       e.preventDefault();
       div.classList.remove('drag-over');
       const draggedId = e.dataTransfer.getData('text/plain');
-      if (draggedId === n.id) return; // Drop tại chỗ
+      if (draggedId === n.id) return;
 
-      // Đảo vị trí trong mảng JS
       const fromIdx = notes.findIndex(x => x.id === draggedId);
       const toIdx = notes.findIndex(x => x.id === n.id);
       const [movedItem] = notes.splice(fromIdx, 1);
       notes.splice(toIdx, 0, movedItem);
 
-      // Cập nhật lại index cho toàn bộ mảng
       notes.forEach((note, i) => note.order_index = i);
-      
-      // Render lại giao diện ngay lập tức
       renderList(document.getElementById('search-inp').value);
       
-      // Đẩy API lưu order ngầm
       const orderData = notes.map(note => ({ id: note.id, order: note.order_index }));
       try {
         await api({ action: 'reorderNotes', orderData });
@@ -658,11 +640,12 @@ async function deleteNote(n) {
 // SAVE
 function setSaveInd(cls, txt) {
   const el = document.getElementById('save-ind');
-  el.className = 'save-indicator' + (cls ? ' '+cls : '');
-  el.textContent = txt;
+  if(el) {
+    el.className = 'save-indicator' + (cls ? ' '+cls : '');
+    el.textContent = txt;
+  }
 }
 
-// Thêm cờ force để ép lưu ngay lập tức khi bấm nút
 function triggerSave(force = false) {
   if (!current) return;
   setSaveInd('saving', '● lưu...');
@@ -675,10 +658,9 @@ function triggerSave(force = false) {
       await api({ action: 'updateNote', id: current.id, title, content });
       current.title = title; current.content = content;
       current.updated_at = new Date().toISOString();
-      const idx = notes.findIndex(n => n.id === current.id);  
+      const idx = notes.findIndex(n => n.id === current.id);
       if (idx !== -1) notes[idx] = {...notes[idx], title, content, updated_at: current.updated_at};
       
-      // ĐÃ XÓA: Dòng notes.sort theo updated_at để ghi chú không bị nhảy vị trí khi đang gõ
       renderList(document.getElementById('search-inp').value);
       setSaveInd('saved', '✓ đã lưu');
       if(force) toast('Đã lưu thủ công!');
@@ -687,16 +669,16 @@ function triggerSave(force = false) {
   };
 
   if (force) doSave(); // Lưu ngay
-  else saveTimer = setTimeout(doSave, 1000); // Lưu tự động sau 1s
+  else saveTimer = setTimeout(doSave, 1000); // Lưu tự động
 }
 
-// Bắt sự kiện nút lưu thủ công
-document.getElementById('btn-manual-save').addEventListener('click', () => {
-  triggerSave(true); 
-});
+document.getElementById('note-title-inp').addEventListener('input', () => triggerSave(false));
+document.getElementById('editor').addEventListener('input', () => triggerSave(false));
 
-document.getElementById('note-title-inp').addEventListener('input', triggerSave);
-document.getElementById('editor').addEventListener('input', triggerSave);
+// Gắn sự kiện cho nút lưu thủ công nếu HTML đã có
+if(document.getElementById('btn-manual-save')) {
+  document.getElementById('btn-manual-save').addEventListener('click', () => triggerSave(true));
+}
 
 // TOOLBAR
 document.querySelectorAll('.perm-opt').forEach(btn => {
@@ -705,9 +687,10 @@ document.querySelectorAll('.perm-opt').forEach(btn => {
     btn.classList.add('sel');
     sharePerm = btn.dataset.perm;
     document.getElementById('share-link').value = 'Đang tạo link...';
-    await genShareLink(true); // <-- Sửa ở đây: Thêm tham số true
+    await genShareLink(true); 
   });
 });
+
 // PASTE IMAGE
 function setupPaste(el) {
   el.addEventListener('paste', async e => {
@@ -762,9 +745,7 @@ function insertAtCursor(el, node) {
 
 setupPaste(document.getElementById('editor'));
 
-// ================= XỬ LÝ SHARE (TỐI ƯU UX & LOGIC) =================
-
-// 1. Mở modal Share
+// ================= XỬ LÝ SHARE =================
 document.getElementById('btn-share').addEventListener('click', async () => {
   if (!current) return;
   document.getElementById('share-overlay').classList.add('open');
@@ -772,18 +753,15 @@ document.getElementById('btn-share').addEventListener('click', async () => {
   const slugInp = document.getElementById('share-slug-inp');
   const linkInp = document.getElementById('share-link');
   
-  // Nếu note này đã từng share, hiển thị lại thông tin cũ (KHÔNG GỌI API)
   if (current.share_token) {
     sharePerm = current.share_perm || 'view';
     slugInp.value = current.share_token;
     linkInp.value = `${location.origin}${location.pathname}?n=${current.share_token}`;
     
-    // Đổi màu nút quyền theo data đã lưu
     document.querySelectorAll('.perm-opt').forEach(b => {
       b.classList.toggle('sel', b.dataset.perm === sharePerm);
     });
   } else {
-    // Nếu chưa từng share, tạo mới link mặc định (Chỉ xem)
     sharePerm = 'view';
     slugInp.value = "";
     linkInp.value = 'Đang tạo link...';
@@ -795,27 +773,23 @@ document.getElementById('btn-share').addEventListener('click', async () => {
   }
 });
 
-// 2. Đóng Modal
 document.getElementById('btn-modal-close').addEventListener('click', () => {
   document.getElementById('share-overlay').classList.remove('open');
 });
 
-// 3. Chọn quyền (Chỉ đổi UI để người dùng chọn, KHÔNG tự động lưu)
 document.querySelectorAll('.perm-opt').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.perm-opt').forEach(b => b.classList.remove('sel'));
     btn.classList.add('sel');
-    sharePerm = btn.dataset.perm; // Lưu trạng thái vào biến tạm
+    sharePerm = btn.dataset.perm; 
   });
 });
 
-// 4. Bấm nút "Cập nhật link" (Lúc này mới gọi API)
 document.getElementById('btn-save-share').addEventListener('click', async () => {
   document.getElementById('share-link').value = 'Đang cập nhật...';
   await genShareLink();
 });
 
-// 5. Hàm gọi API
 async function genShareLink() {
   if (!current) return;
   const slugInp = document.getElementById('share-slug-inp');
@@ -830,10 +804,9 @@ async function genShareLink() {
     
     const res = await api(payload);
     
-    // Cập nhật lại data note hiện tại
     current.share_token = res.token;
     current.share_perm = sharePerm;
-    if (res.token) slugInp.value = res.token; // Cập nhật lại ô slug nếu backend trả về
+    if (res.token) slugInp.value = res.token; 
     
     const url = `${location.origin}${location.pathname}?n=${res.token}`;
     document.getElementById('share-link').value = url;
@@ -843,7 +816,6 @@ async function genShareLink() {
   }
 }
 
-// 6. Nút Copy
 document.getElementById('btn-copy').addEventListener('click', () => {
   navigator.clipboard.writeText(document.getElementById('share-link').value).then(() => {
     const btn = document.getElementById('btn-copy');
@@ -851,6 +823,7 @@ document.getElementById('btn-copy').addEventListener('click', () => {
     setTimeout(() => { btn.textContent = 'Sao chép'; btn.classList.remove('ok'); }, 2000);
   });
 });
+
 // SEARCH
 document.getElementById('search-inp').addEventListener('input', e => renderList(e.target.value));
 
@@ -866,6 +839,5 @@ document.getElementById('btn-logout').addEventListener('click', () => {
   if (isShare) return;
   if (sessionStorage.getItem('gn_auth') === '1') showApp();
 })();
-</script>
 </body>
 </html>
