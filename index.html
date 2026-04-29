@@ -278,13 +278,13 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
   background: var(--surface2); border: 1px solid var(--border2);
   border-radius: 10px; padding: 10px; z-index: 200;
   box-shadow: 0 8px 32px rgba(0,0,0,.5);
-  display: none; flex-direction: column; gap: 8px; min-width: 192px;
+  display: none; flex-direction: column; gap: 8px; min-width: 228px;
 }
 .color-picker-pop.open { display: flex; }
 .color-picker-pop label {
   font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 1px;
 }
-.color-swatches { display: flex; gap: 5px; flex-wrap: wrap; }
+.color-swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
 .swatch {
   width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent;
   cursor: pointer; transition: transform .12s, border-color .12s;
@@ -830,9 +830,106 @@ function triggerSave() {
 document.getElementById('note-title-inp').addEventListener('input', triggerSave);
 document.getElementById('editor').addEventListener('input', triggerSave);
 
+// ===== TOOLBAR HANDLERS =====
+document.querySelectorAll('.tb-btn').forEach(btn => {
+  btn.addEventListener('mousedown', e => {
+    e.preventDefault(); // Giữ focus vào editor, không mất selection
+    const cmd = btn.dataset.cmd;
+    const editor = document.getElementById('editor');
+    editor.focus();
+
+    // Bold / Italic / Underline / danh sách — execCommand chuẩn
+    if (['bold','italic','underline','insertUnorderedList','insertOrderedList'].includes(cmd)) {
+      document.execCommand(cmd, false, null);
+      triggerSave();
+      return;
+    }
+
+    // Heading H1 / H2 / H3
+    if (['h1','h2','h3'].includes(cmd)) {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return;
+      const range = sel.getRangeAt(0);
+      let block = range.commonAncestorContainer;
+      if (block.nodeType === Node.TEXT_NODE) block = block.parentElement;
+      while (block.parentElement && block.parentElement !== editor) block = block.parentElement;
+      const tag = cmd.toUpperCase();
+      if (block.tagName === tag) {
+        const p = document.createElement('p');
+        p.innerHTML = block.innerHTML;
+        block.replaceWith(p);
+      } else {
+        const h = document.createElement(tag);
+        h.innerHTML = block.innerHTML;
+        block.replaceWith(h);
+      }
+      triggerSave();
+      return;
+    }
+
+    // Blockquote
+    if (cmd === 'blockquote') {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return;
+      const range = sel.getRangeAt(0);
+      let block = range.commonAncestorContainer;
+      if (block.nodeType === Node.TEXT_NODE) block = block.parentElement;
+      while (block.parentElement && block.parentElement !== editor) block = block.parentElement;
+      if (block.tagName === 'BLOCKQUOTE') {
+        const p = document.createElement('p');
+        p.innerHTML = block.innerHTML;
+        block.replaceWith(p);
+      } else {
+        const bq = document.createElement('blockquote');
+        bq.innerHTML = block.innerHTML;
+        block.replaceWith(bq);
+      }
+      triggerSave();
+      return;
+    }
+
+    // Link
+    if (cmd === 'link') {
+      const sel = window.getSelection();
+      const selectedText = sel ? sel.toString().trim() : '';
+      const url = prompt('Nhập URL:', 'https://');
+      if (!url || url === 'https://') return;
+      if (selectedText) {
+        document.execCommand('createLink', false, url);
+        editor.querySelectorAll('a[href="' + url + '"]').forEach(a => a.target = '_blank');
+      } else {
+        const a = document.createElement('a');
+        a.href = url; a.target = '_blank'; a.textContent = url;
+        const range = sel.getRangeAt(0);
+        range.deleteContents();
+        range.insertNode(a);
+      }
+      triggerSave();
+      return;
+    }
+  });
+});
+
 // ===== COLOR / HIGHLIGHT PICKER =====
-const FG_COLORS = ['#f87171','#fb923c','#fbbf24','#4ade80','#34d399','#38bdf8','#818cf8','#e879f9','#ffffff','#94a3b8'];
-const BG_COLORS = ['rgba(248,113,113,.35)','rgba(251,146,60,.35)','rgba(251,191,36,.4)','rgba(74,222,128,.3)','rgba(52,211,153,.3)','rgba(56,189,248,.3)','rgba(129,140,248,.3)','rgba(232,121,249,.3)','rgba(255,255,255,.15)','rgba(148,163,184,.25)'];
+const FG_COLORS = [
+  '#f87171','#ef4444','#fb923c','#f97316',
+  '#fbbf24','#eab308','#4ade80','#22c55e',
+  '#34d399','#10b981','#38bdf8','#0ea5e9',
+  '#818cf8','#6366f1','#e879f9','#d946ef',
+  '#f9a8d4','#fb7185','#ffffff','#94a3b8'
+];
+const BG_COLORS = [
+  'rgba(248,113,113,.4)','rgba(239,68,68,.35)',
+  'rgba(251,146,60,.4)','rgba(249,115,22,.35)',
+  'rgba(251,191,36,.45)','rgba(234,179,8,.4)',
+  'rgba(74,222,128,.35)','rgba(34,197,94,.3)',
+  'rgba(52,211,153,.35)','rgba(16,185,129,.3)',
+  'rgba(56,189,248,.35)','rgba(14,165,233,.3)',
+  'rgba(129,140,248,.35)','rgba(99,102,241,.3)',
+  'rgba(232,121,249,.35)','rgba(217,70,239,.3)',
+  'rgba(249,168,212,.35)','rgba(251,113,133,.3)',
+  'rgba(255,255,255,.18)','rgba(148,163,184,.28)'
+];
 
 function buildSwatches(containerId, colors, applyFn, barId) {
   const wrap = document.getElementById(containerId);
