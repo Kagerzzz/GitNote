@@ -81,7 +81,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
 .share-logo { font-family: var(--serif); font-size: 17px; font-weight: 300; font-style: italic; color: var(--accent); }
 .share-pill { font-size: 11px; padding: 3px 10px; border-radius: 20px; border: 1px solid var(--border2); color: var(--text-2); }
 .share-pill.edit { border-color: var(--amber); color: var(--amber); }
-.share-body { flex: 1; overflow-y: auto; padding: 48px 24px; max-width: 800px; margin: 0 auto; width: 100%; }
+.share-body { flex: 1; overflow-y: auto; padding: 48px 24px; max-width: 900px; margin: 0 auto; width: 100%; }
 
 /* APP */
 #app { display: none; height: 100vh; flex-direction: column; }
@@ -651,7 +651,7 @@ const token = new URLSearchParams(location.search).get('n'); // Đổi thành 'n
   try {
     const note = await api({ action: 'getByToken', token });
     if (note.error || !note.id) {
-      document.getElementById('share-body').innerHTML = '<p style="color:var(--text-3);padding:40px 0">Link không hợp lệ hoặc đã hết hạn.</p>';
+      document.getElementById('share-body').innerHTML = '<p style="color:var(--text-3);padding:40px 0">🔒 Ghi chú ở trạng thái riêng tư.</p>';
       return true;
     }
     const pill = document.getElementById('share-pill');
