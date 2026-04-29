@@ -89,7 +89,8 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
   height: 50px; background: var(--surface); border-bottom: 1px solid var(--border);
   display: flex; align-items: center; padding: 0 16px; gap: 10px; flex-shrink: 0;
 }
-.topbar-logo { font-family: var(--serif); font-size: 18px; font-weight: 300; font-style: italic; color: var(--accent); margin-right: auto; }
+.topbar-logo { font-family: var(--serif); font-size: 18px; font-weight: 300; font-style: italic; color: var(--accent); }
+.topbar-save-group { display: flex; align-items: center; gap: 8px; margin-left: auto; margin-right: 8px; }
 .icon-btn {
   background: none; border: 1px solid transparent; color: var(--text-2);
   border-radius: 7px; padding: 5px 12px; font-family: var(--mono); font-size: 12px;
@@ -183,7 +184,6 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
   display: flex; align-items: center; justify-content: center; transition: all .12s; flex-shrink: 0;
 }
 .tb-btn:hover { background: var(--surface2); color: var(--text); }
-.toolbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .save-indicator { font-size: 11px; color: var(--text-3); transition: color .2s; }
 .save-indicator.saving { color: var(--accent); }
 .save-indicator.saved  { color: var(--green); }
@@ -358,6 +358,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
   .btn-share-note { padding: 5px 8px; font-size: 11px; }
   .btn-save-manual { padding: 5px 8px; font-size: 11px; }
   .save-indicator { display: none; }
+  .topbar-save-group { gap: 6px; margin-right: 4px; }
 
   /* Modal */
   .modal { width: calc(100vw - 32px); padding: 20px; }
@@ -458,6 +459,11 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
   <div class="topbar">
     <button class="hamburger" id="btn-hamburger" title="Mở danh sách">☰</button>
     <div class="topbar-logo">GitNote</div>
+    <div class="topbar-save-group">
+      <span class="save-indicator" id="save-ind"></span>
+      <button class="btn-save-manual" id="btn-save-manual" title="Lưu thủ công (Ctrl+S)">💾 Lưu</button>
+      <button class="btn-share-note" id="btn-share">⤤ Chia sẻ</button>
+    </div>
     <button class="icon-btn danger" id="btn-logout">↩ Đăng xuất</button>
   </div>
   <div class="workspace">
@@ -515,11 +521,6 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
               <label>Highlight</label>
               <div class="color-swatches" id="sw-bg"></div>
             </div>
-          </div>
-          <div class="toolbar-right">
-            <span class="save-indicator" id="save-ind"></span>
-            <button class="btn-save-manual" id="btn-save-manual" title="Lưu thủ công (Ctrl+S)">💾 Lưu</button>
-            <button class="btn-share-note" id="btn-share">⤤ Chia sẻ</button>
           </div>
         </div>
         <div id="editor-wrap">
