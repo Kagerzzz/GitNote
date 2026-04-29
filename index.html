@@ -853,7 +853,12 @@ document.querySelectorAll('.tb-btn').forEach(btn => {
       const range = sel.getRangeAt(0);
       let block = range.commonAncestorContainer;
       if (block.nodeType === Node.TEXT_NODE) block = block.parentElement;
-      while (block.parentElement && block.parentElement !== editor) block = block.parentElement;
+      // Leo lên đến con trực tiếp của editor, nhưng DỪNG nếu thoát khỏi editor
+      while (block.parentElement && block.parentElement !== editor) {
+        block = block.parentElement;
+        if (!editor.contains(block)) return; // cursor không trong editor → bỏ qua
+      }
+      if (!editor.contains(block) || block === editor) return; // kiểm tra lần cuối
       const tag = cmd.toUpperCase();
       if (block.tagName === tag) {
         const p = document.createElement('p');
@@ -875,7 +880,12 @@ document.querySelectorAll('.tb-btn').forEach(btn => {
       const range = sel.getRangeAt(0);
       let block = range.commonAncestorContainer;
       if (block.nodeType === Node.TEXT_NODE) block = block.parentElement;
-      while (block.parentElement && block.parentElement !== editor) block = block.parentElement;
+      // Leo lên đến con trực tiếp của editor, nhưng DỪNG nếu thoát khỏi editor
+      while (block.parentElement && block.parentElement !== editor) {
+        block = block.parentElement;
+        if (!editor.contains(block)) return;
+      }
+      if (!editor.contains(block) || block === editor) return;
       if (block.tagName === 'BLOCKQUOTE') {
         const p = document.createElement('p');
         p.innerHTML = block.innerHTML;
