@@ -289,7 +289,27 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
 
 /* TOAST */
 
-/* ===== COLOR / HIGHLIGHT PICKER ===== */
+/* Link tooltip */
+#link-tooltip {
+  position: fixed; z-index: 400;
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 6px 10px;
+  display: flex; align-items: center; gap: 6px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.5); font-size: 12px;
+}
+#link-tooltip .tip-href {
+  color: var(--accent); text-decoration: none; max-width: 260px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+#link-tooltip .tip-href:hover { text-decoration: underline; }
+#link-tooltip .tip-btn {
+  background: none; border: 1px solid var(--border); color: var(--text-2);
+  border-radius: 5px; width: 24px; height: 24px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 12px;
+  transition: all .12s; flex-shrink: 0;
+}
+#link-tooltip .tip-btn:hover { border-color: var(--accent); color: var(--accent); }
+#link-tooltip .tip-btn.danger:hover { border-color: var(--red); color: var(--red); }
 .color-picker-pop {
   position: fixed; /* fixed thay vì absolute để không bị clip bởi overflow:hidden của toolbar */
   background: var(--surface2); border: 1px solid var(--border2);
@@ -863,95 +883,173 @@ document.getElementById('editor').addEventListener('input', triggerSave);
 (function() {
   const editor = document.getElementById('editor');
 
-  // Lưu lại selection trước khi mở popup/prompt
+  // savedRange: chỉ dùng cho các trường hợp PHẢI rời khỏi editor (prompt, file picker)
   let savedRange = null;
-  function saveSelection() {
+  function snapSelection() {
     const sel = window.getSelection();
-    if (sel && sel.rangeCount > 0 && editor.contains(sel.getRangeAt(0).commonAncestorContainer)) {
-      savedRange = sel.getRangeAt(0).cloneRange();
+    if (sel && sel.rangeCount > 0) {
+      const r = sel.getRangeAt(0);
+      if (editor.contains(r.commonAncestorContainer)) {
+        savedRange = r.cloneRange();
+      }
     }
   }
-  function restoreSelection() {
-    if (!savedRange) return;
+  function applyRange() {
+    if (!savedRange) return false;
     const sel = window.getSelection();
     sel.removeAllRanges();
     sel.addRange(savedRange);
+    return true;
   }
 
-  // Lưu selection khi editor mất focus
-  editor.addEventListener('blur', saveSelection);
-
-  // Font size select — dùng mousedown để lưu selection trước
+  // ---- Font size ----
+  // mousedown lưu selection TRƯỚC KHI select mở ra
   const selFs = document.getElementById('sel-fontsize');
-  selFs.addEventListener('mousedown', saveSelection);
-  selFs.addEventListener('change', () => {
-    restoreSelection();
+  selFs.addEventListener('mousedown', snapSelection);
+  selFs.addEventListener('change', function() {
+    applyRange();
     editor.focus();
-    document.execCommand('fontSize', false, '7'); // placeholder size
-    // Tìm các span vừa tạo ra và gán font-size thực
-    editor.querySelectorAll('font[size="7"]').forEach(el => {
-      const span = document.createElement('span');
-      span.style.fontSize = selFs.value;
-      span.innerHTML = el.innerHTML;
-      el.replaceWith(span);
-    });
+    const size = this.value;
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    if (sel.isCollapsed) { editor.style.fontSize = size; return; }
+    // Bọc selection trong <span style="font-size:...">
+    const range = sel.getRangeAt(0);
+    const span = document.createElement('span');
+    span.style.fontSize = size;
+    try { range.surroundContents(span); }
+    catch(_) {
+      // surroundContents fails on partial selections — dùng execCommand fallback
+      document.execCommand('fontSize', false, '7');
+      editor.querySelectorAll('font[size="7"]').forEach(el => {
+        const s = document.createElement('span');
+        s.style.fontSize = size;
+        s.innerHTML = el.innerHTML;
+        el.replaceWith(s);
+      });
+    }
     triggerSave();
   });
 
-  // Xử lý từng nút .tb-btn
-  document.querySelectorAll('.tb-btn').forEach(btn => {
-    btn.addEventListener('mousedown', e => {
+  // ---- Nút format chính ----
+  document.querySelectorAll('.tb-btn[data-cmd]').forEach(btn => {
+    btn.addEventListener('mousedown', function(e) {
+      // preventDefault giữ nguyên selection trong editor
       e.preventDefault();
-      restoreSelection();
+      const cmd = this.dataset.cmd;
       editor.focus();
-      const cmd = btn.dataset.cmd;
 
-      // --- Bold / Italic / Strikethrough ---
       if (cmd === 'bold')          { document.execCommand('bold',          false, null); triggerSave(); return; }
       if (cmd === 'italic')        { document.execCommand('italic',        false, null); triggerSave(); return; }
       if (cmd === 'strikethrough') { document.execCommand('strikeThrough', false, null); triggerSave(); return; }
 
-      // --- Link ---
       if (cmd === 'link') {
-        saveSelection();
-        const sel = window.getSelection();
-        const selectedText = sel ? sel.toString().trim() : '';
-        const url = prompt('Nhập URL:', 'https://');
-        restoreSelection();
+        // 1. Snap selection ngay bây giờ (focus vẫn trong editor)
+        snapSelection();
+        const selText = window.getSelection().toString().trim();
+        const isOnLink = !!window.getSelection().anchorNode?.parentElement?.closest('a');
+
+        // 2. Nếu đang đứng trong link → gỡ link
+        if (isOnLink) {
+          document.execCommand('unlink', false, null);
+          triggerSave(); return;
+        }
+
+        // 3. Mở prompt (editor mất focus tại đây)
+        const url = prompt('Nhập URL (để trống để gỡ link):', 'https://');
+        if (url === null) return;
+
+        // 4. Khôi phục selection rồi mới thao tác DOM
+        applyRange();
         editor.focus();
-        if (!url || url === 'https://') return;
-        if (selectedText) {
-          document.execCommand('createLink', false, url);
-          editor.querySelectorAll('a').forEach(a => { if (a.href === url) a.target = '_blank'; });
+
+        if (!url.trim()) { document.execCommand('unlink', false, null); triggerSave(); return; }
+
+        const fullUrl = /^https?:\/\//i.test(url) ? url : 'https://' + url;
+        if (selText) {
+          document.execCommand('createLink', false, fullUrl);
+          // gán target=_blank cho link vừa tạo
+          editor.querySelectorAll('a').forEach(a => {
+            if (a.href === fullUrl) a.target = '_blank';
+          });
         } else {
+          // Không có text chọn → chèn link dạng text
           const a = document.createElement('a');
-          a.href = url; a.target = '_blank'; a.textContent = url;
-          const sel2 = window.getSelection();
-          if (sel2 && sel2.rangeCount) {
-            const r = sel2.getRangeAt(0);
-            r.deleteContents(); r.insertNode(a);
-            r.setStartAfter(a); r.collapse(true);
-            sel2.removeAllRanges(); sel2.addRange(r);
-          }
+          a.href = fullUrl; a.target = '_blank'; a.textContent = fullUrl;
+          const range = window.getSelection().getRangeAt(0);
+          range.deleteContents();
+          range.insertNode(a);
+          // Đặt cursor sau link
+          range.setStartAfter(a); range.collapse(true);
+          window.getSelection().removeAllRanges();
+          window.getSelection().addRange(range);
         }
         triggerSave(); return;
       }
 
-      // --- Upload image ---
       if (cmd === 'uploadImage') {
-        saveSelection();
+        snapSelection();
         document.getElementById('img-file-inp').click();
         return;
       }
     });
   });
 
-  // Xử lý file upload ảnh
+  // Click vào link trong editor → hiện tooltip
+  editor.addEventListener('click', function(e) {
+    const a = e.target.closest('a');
+    if (!a) { removeLinkTooltip(); return; }
+    e.preventDefault();
+    showLinkTooltip(a);
+  });
+
+  function removeLinkTooltip() {
+    document.getElementById('link-tooltip')?.remove();
+  }
+  function showLinkTooltip(aEl) {
+    removeLinkTooltip();
+    const tip = document.createElement('div');
+    tip.id = 'link-tooltip';
+    tip.innerHTML = `
+      <a href="${aEl.href}" target="_blank" class="tip-href">${aEl.href}</a>
+      <button class="tip-btn" id="tip-edit">✎</button>
+      <button class="tip-btn danger" id="tip-unlink">✕</button>
+    `;
+    document.body.appendChild(tip);
+
+    // Định vị theo link
+    const r = aEl.getBoundingClientRect();
+    tip.style.left = Math.min(r.left, window.innerWidth - tip.offsetWidth - 8) + 'px';
+    tip.style.top  = (r.bottom + 6) + 'px';
+
+    tip.querySelector('#tip-edit').addEventListener('click', () => {
+      removeLinkTooltip();
+      const newUrl = prompt('Sửa URL:', aEl.href);
+      if (newUrl && newUrl.trim()) { aEl.href = newUrl.trim(); triggerSave(); }
+    });
+    tip.querySelector('#tip-unlink').addEventListener('click', () => {
+      removeLinkTooltip();
+      // Unwrap <a> giữ nội dung
+      const parent = aEl.parentNode;
+      while (aEl.firstChild) parent.insertBefore(aEl.firstChild, aEl);
+      parent.removeChild(aEl);
+      triggerSave();
+    });
+
+    // Đóng khi click ngoài
+    setTimeout(() => {
+      document.addEventListener('mousedown', function handler(ev) {
+        if (!tip.contains(ev.target)) { removeLinkTooltip(); document.removeEventListener('mousedown', handler); }
+      });
+    }, 0);
+  }
+
+  // ---- Upload ảnh ----
   document.getElementById('img-file-inp').addEventListener('change', async function() {
     const file = this.files[0];
     if (!file) return;
     this.value = '';
-    restoreSelection();
+    applyRange();
     editor.focus();
     const ph = document.createElement('div');
     ph.className = 'img-uploading';
@@ -962,15 +1060,13 @@ document.getElementById('editor').addEventListener('input', triggerSave);
     } else { editor.appendChild(ph); }
     try {
       const b64 = await blobToB64(file);
-      const pure = b64.split(',')[1];
-      const res = await api({ action: 'uploadImage', base64: pure, mimeType: file.type, filename: 'img_'+Date.now()+'.png' });
+      const res = await api({ action: 'uploadImage', base64: b64.split(',')[1], mimeType: file.type, filename: 'img_'+Date.now()+'.png' });
       const img = document.createElement('img');
       img.src = res.url; img.setAttribute('referrerpolicy','no-referrer');
       ph.replaceWith(img);
       toast('✓ Đã chèn ảnh');
     } catch(err) {
       ph.textContent = '✕ Lỗi: ' + err.message;
-      toast('Lỗi ảnh: ' + err.message);
     }
     triggerSave();
   });
@@ -1018,13 +1114,16 @@ document.getElementById('editor').addEventListener('input', triggerSave);
     const wrap = document.getElementById(containerId);
     const clear = document.createElement('div');
     clear.className = 'swatch clear'; clear.title = 'Xóa màu'; clear.textContent = '✕';
-    clear.addEventListener('mousedown', e => { e.preventDefault(); restoreSelection(); editor.focus(); applyFn(null); closeAllPickers(); triggerSave(); });
+    clear.addEventListener('mousedown', e => {
+      e.preventDefault(); applyRange(); editor.focus();
+      applyFn(null); closeAllPickers(); triggerSave();
+    });
     wrap.appendChild(clear);
     colors.forEach(color => {
       const s = document.createElement('div');
       s.className = 'swatch'; s.style.background = color;
       s.addEventListener('mousedown', e => {
-        e.preventDefault(); restoreSelection(); editor.focus();
+        e.preventDefault(); applyRange(); editor.focus();
         applyFn(color);
         document.getElementById(barId).style.background = color;
         closeAllPickers(); triggerSave();
@@ -1044,14 +1143,14 @@ document.getElementById('editor').addEventListener('input', triggerSave);
   }, 'bgcolor-bar');
 
   document.getElementById('btn-fgcolor').addEventListener('mousedown', e => {
-    e.preventDefault(); saveSelection();
+    e.preventDefault(); snapSelection();
     const pop = document.getElementById('pop-fgcolor');
     const isOpen = pop.classList.contains('open');
     closeAllPickers();
     if (!isOpen) { positionPop(e.currentTarget, pop); pop.classList.add('open'); }
   });
   document.getElementById('btn-bgcolor').addEventListener('mousedown', e => {
-    e.preventDefault(); saveSelection();
+    e.preventDefault(); snapSelection();
     const pop = document.getElementById('pop-bgcolor');
     const isOpen = pop.classList.contains('open');
     closeAllPickers();
