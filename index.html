@@ -169,15 +169,13 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
 /* TOOLBAR */
 .toolbar {
   background: var(--surface); border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; padding: 0 16px; gap: 4px;
-  flex-shrink: 0; overflow-x: auto; scrollbar-width: none;
+  display: flex; align-items: center; padding: 0 12px; gap: 2px;
+  height: 46px; flex-shrink: 0; overflow-x: auto; scrollbar-width: none;
 }
 .toolbar::-webkit-scrollbar { display: none; }
-.toolbar-title-row { min-height: 46px; border-bottom: 1px solid var(--border); }
-.toolbar-fmt-row   { min-height: 40px; gap: 2px; }
 #note-title-inp {
   background: none; border: none; color: var(--text); font-family: var(--serif);
-  font-size: 16px; font-weight: 300; outline: none; flex: 1; min-width: 120px; padding: 4px 0;
+  font-size: 15px; font-weight: 300; outline: none; flex: 1; min-width: 80px; padding: 4px 0;
 }
 #note-title-inp::placeholder { color: var(--text-3); }
 .tb-sep { width: 1px; height: 16px; background: var(--border); margin: 0 4px; flex-shrink: 0; }
@@ -188,23 +186,20 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
 }
 .tb-btn:hover { background: var(--surface2); color: var(--text); }
 /* Font size select */
-.tb-select-wrap {
-  position: relative; display: flex; align-items: center; flex-shrink: 0;
-}
+.tb-select-wrap { position: relative; display: flex; align-items: center; flex-shrink: 0; }
 .tb-select {
   appearance: none; -webkit-appearance: none;
   background: none; border: 1px solid var(--border); border-radius: 5px;
   color: var(--text-2); font-family: var(--mono); font-size: 11px;
-  padding: 3px 20px 3px 7px; cursor: pointer; outline: none;
+  padding: 3px 18px 3px 6px; cursor: pointer; outline: none;
   transition: border-color .12s, color .12s;
 }
 .tb-select:hover, .tb-select:focus { border-color: var(--border2); color: var(--text); }
 .tb-select option { background: var(--surface2); color: var(--text); }
 .tb-select-icon {
-  position: absolute; right: 5px; top: 50%; transform: translateY(-50%);
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
   color: var(--text-3); font-size: 9px; pointer-events: none;
 }
-/* Color picker wrapper — dùng position:relative để popup không tràn */
 .tb-pop-wrap { position: relative; display: flex; align-items: center; flex-shrink: 0; }
 .save-indicator { font-size: 11px; color: var(--text-3); transition: color .2s; }
 .save-indicator.saving { color: var(--accent); }
@@ -233,7 +228,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
   outline: none; color: var(--text); font-family: var(--mono); font-size: 14px;
   line-height: 1.85; caret-color: var(--accent);
 }
-#editor:empty::before { content: 'Bắt đầu ghi chú...'; color: var(--text-3); pointer-events: none; }
+#editor-panel.active #editor:empty::before { content: 'Bắt đầu ghi chú...'; color: var(--text-3); pointer-events: none; }
 #editor h1 { font-family: var(--serif); font-size: 26px; font-weight: 300; margin: 20px 0 10px; line-height: 1.3; }
 #editor h2 { font-family: var(--serif); font-size: 20px; font-weight: 300; margin: 16px 0 8px; }
 #editor h3 { font-family: var(--serif); font-size: 16px; font-weight: 600; margin: 14px 0 6px; }
@@ -506,18 +501,14 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
         <div class="empty-hint">Chọn hoặc tạo ghi chú mới</div>
       </div>
       <div id="editor-panel">
-        <!-- TOOLBAR ROW 1: Title -->
-        <div class="toolbar toolbar-title-row">
+        <!-- TOOLBAR: Title trái, format phải, 1 hàng -->
+        <div class="toolbar">
           <input id="note-title-inp" placeholder="Tiêu đề..."/>
-        </div>
-        <!-- TOOLBAR ROW 2: Format buttons -->
-        <div class="toolbar toolbar-fmt-row">
-          <!-- Bold / Italic / Strikethrough -->
-          <button class="tb-btn" data-cmd="bold"           title="In đậm (Ctrl+B)"><b>B</b></button>
-          <button class="tb-btn" data-cmd="italic"         title="In nghiêng (Ctrl+I)"><i>I</i></button>
+          <div class="tb-sep"></div>
+          <button class="tb-btn" data-cmd="bold"           title="In đậm"><b>B</b></button>
+          <button class="tb-btn" data-cmd="italic"         title="In nghiêng"><i>I</i></button>
           <button class="tb-btn" data-cmd="strikethrough"  title="Gạch ngang"><s>S</s></button>
           <div class="tb-sep"></div>
-          <!-- Font size -->
           <div class="tb-select-wrap" title="Cỡ chữ">
             <select id="sel-fontsize" class="tb-select">
               <option value="10px">10</option>
@@ -532,7 +523,6 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
             <span class="tb-select-icon">▾</span>
           </div>
           <div class="tb-sep"></div>
-          <!-- Màu chữ -->
           <div class="tb-pop-wrap">
             <button class="tb-btn-color" id="btn-fgcolor" title="Màu chữ">
               <span style="font-size:13px;font-weight:700;line-height:1">A</span>
@@ -543,7 +533,6 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
               <div class="color-swatches" id="sw-fg"></div>
             </div>
           </div>
-          <!-- Highlight -->
           <div class="tb-pop-wrap">
             <button class="tb-btn-color" id="btn-bgcolor" title="Highlight">
               <span style="font-size:15px;line-height:1">▐</span>
@@ -555,13 +544,11 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
             </div>
           </div>
           <div class="tb-sep"></div>
-          <!-- Link & Upload image -->
           <button class="tb-btn" data-cmd="link"        title="Chèn link">↗</button>
           <button class="tb-btn" data-cmd="uploadImage" title="Chèn ảnh">🖼</button>
         </div>
         <!-- Hidden file input for image upload -->
         <input type="file" id="img-file-inp" accept="image/*" style="display:none"/>
-        </div>
         <div id="editor-wrap">
           <div id="editor" contenteditable="true" spellcheck="false"></div>
         </div>
@@ -831,7 +818,9 @@ async function deleteNote(n) {
     notes = notes.filter(x => x.id !== n.id);
     if (current && current.id === n.id) {
       current = null;
-      document.getElementById('editor-panel').style.display = 'none';
+      const panel = document.getElementById('editor-panel');
+      panel.style.display = 'none';
+      panel.classList.remove('active');
       document.getElementById('empty-state').style.display = 'flex';
     }
     renderList(document.getElementById('search-inp').value);
@@ -1126,7 +1115,9 @@ document.addEventListener('keydown', e => {
 function openNote(n) {
   current = n;
   document.getElementById('empty-state').style.display = 'none';
-  document.getElementById('editor-panel').style.display = 'flex';
+  const panel = document.getElementById('editor-panel');
+  panel.style.display = 'flex';
+  panel.classList.add('active');
   document.getElementById('note-title-inp').value = n.title || '';
   document.getElementById('editor').innerHTML = n.content || '';
   setSaveInd('','');
