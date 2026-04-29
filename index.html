@@ -585,10 +585,14 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
     <div class="perm-row">
       <div class="perm-opt sel" data-perm="view">👁 Chỉ xem</div>
       <div class="perm-opt"     data-perm="edit">✏️ Có thể sửa</div>
+      <div class="perm-opt"     data-perm="private">🔒 Riêng tư</div>
     </div>
     <div class="field" style="margin-top:10px">
       <label>Đường dẫn tùy chỉnh (Slug)</label>
       <input id="share-slug-inp" type="text" placeholder="vi-du: ghi-chu-quan-trong" style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; color: var(--text); font-family: var(--mono); font-size: 13px; outline: none; width: 100%;"/>
+    </div>
+    <div id="share-private-hint" style="display:none; font-size:13px; color:var(--text-3); padding: 12px 0;">
+      🔒 Ghi chú sẽ trở thành riêng tư — link chia sẻ cũ sẽ ngừng hoạt động.
     </div>
     <div class="link-row">
       <input id="share-link" type="text" readonly placeholder="Đang tạo link..."/>
@@ -1297,27 +1301,35 @@ document.getElementById('btn-share').addEventListener('click', async () => {
   
   const slugInp = document.getElementById('share-slug-inp');
   const linkInp = document.getElementById('share-link');
-  
-  // Nếu note này đã từng share, hiển thị lại thông tin cũ (KHÔNG GỌI API)
-  if (current.share_token) {
-    sharePerm = current.share_perm || 'view';
+  const fieldSlug = slugInp.closest('.field');
+  const linkRow = document.querySelector('.link-row');
+  const privateHint = document.getElementById('share-private-hint');
+
+  const isPrivate = current.share_perm === 'private';
+  sharePerm = isPrivate ? 'view' : (current.share_perm || 'view');
+
+  // Reset UI
+  fieldSlug.style.display = '';
+  linkRow.style.display = '';
+  privateHint.style.display = 'none';
+
+  document.querySelectorAll('.perm-opt').forEach(b => {
+    b.classList.toggle('sel', b.dataset.perm === sharePerm);
+  });
+
+  if (current.share_token && !isPrivate) {
+    // Đang share bình thường → hiện link cũ
     slugInp.value = current.share_token;
     linkInp.value = `${location.origin}${location.pathname}?n=${current.share_token}`;
-    
-    // Đổi màu nút quyền theo data đã lưu
-    document.querySelectorAll('.perm-opt').forEach(b => {
-      b.classList.toggle('sel', b.dataset.perm === sharePerm);
-    });
+  } else if (current.share_token && isPrivate) {
+    // Đang private nhưng còn slug cũ → hiện slug để người dùng biết, mặc định view
+    slugInp.value = current.share_token;
+    linkInp.value = `${location.origin}${location.pathname}?n=${current.share_token}`;
   } else {
-    // Nếu chưa từng share, tạo mới link mặc định (Chỉ xem)
-    sharePerm = 'view';
-    slugInp.value = "";
+    // Chưa từng share → tạo link mới
+    slugInp.value = '';
     linkInp.value = 'Đang tạo link...';
-    
-    document.querySelectorAll('.perm-opt').forEach(b => {
-      b.classList.toggle('sel', b.dataset.perm === 'view');
-    });
-    await genShareLink(); 
+    await genShareLink();
   }
 });
 
@@ -1326,12 +1338,17 @@ document.getElementById('btn-modal-close').addEventListener('click', () => {
   document.getElementById('share-overlay').classList.remove('open');
 });
 
-// 3. Chọn quyền (Chỉ đổi UI để người dùng chọn, KHÔNG tự động lưu)
+// 3. Chọn quyền
 document.querySelectorAll('.perm-opt').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.perm-opt').forEach(b => b.classList.remove('sel'));
     btn.classList.add('sel');
-    sharePerm = btn.dataset.perm; // Lưu trạng thái vào biến tạm
+    sharePerm = btn.dataset.perm;
+    // Ẩn/hiện phần link + slug khi chọn Riêng tư
+    const isPrivate = sharePerm === 'private';
+    document.getElementById('share-slug-inp').closest('.field').style.display = isPrivate ? 'none' : '';
+    document.querySelector('.link-row').style.display = isPrivate ? 'none' : '';
+    document.getElementById('share-private-hint').style.display = isPrivate ? 'block' : 'none';
   });
 });
 
@@ -1345,22 +1362,31 @@ document.getElementById('btn-save-share').addEventListener('click', async () => 
 async function genShareLink() {
   if (!current) return;
   const slugInp = document.getElementById('share-slug-inp');
-  
+
+  // --- Riêng tư: xóa share token ---
+  if (sharePerm === 'private') {
+    try {
+      await api({ action: 'createShare', id: current.id, perm: 'private', slug: '' });
+      current.share_perm = 'private';
+      // KHÔNG xóa current.share_token — giữ slug cũ để dùng lại khi bật lại
+      toast('🔒 Đã đặt thành riêng tư');
+      document.getElementById('share-overlay').classList.remove('open');
+    } catch(e) {
+      toast('Lỗi: ' + e.message);
+    }
+    return;
+  }
+
   try {
-    const payload = { 
-      action: 'createShare', 
-      id: current.id, 
+    const res = await api({
+      action: 'createShare',
+      id: current.id,
       perm: sharePerm,
-      slug: slugInp.value.trim() 
-    };
-    
-    const res = await api(payload);
-    
-    // Cập nhật lại data note hiện tại
+      slug: slugInp.value.trim()
+    });
     current.share_token = res.token;
     current.share_perm = sharePerm;
-    if (res.token) slugInp.value = res.token; // Cập nhật lại ô slug nếu backend trả về
-    
+    if (res.token) slugInp.value = res.token;
     const url = `${location.origin}${location.pathname}?n=${res.token}`;
     document.getElementById('share-link').value = url;
     toast('✓ Đã cập nhật link chia sẻ');
