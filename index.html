@@ -169,21 +169,43 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
 /* TOOLBAR */
 .toolbar {
   background: var(--surface); border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; padding: 0 16px; gap: 2px;
-  min-height: 46px; flex-wrap: wrap;
+  display: flex; align-items: center; padding: 0 16px; gap: 4px;
+  flex-shrink: 0; overflow-x: auto; scrollbar-width: none;
 }
+.toolbar::-webkit-scrollbar { display: none; }
+.toolbar-title-row { min-height: 46px; border-bottom: 1px solid var(--border); }
+.toolbar-fmt-row   { min-height: 40px; gap: 2px; }
 #note-title-inp {
   background: none; border: none; color: var(--text); font-family: var(--serif);
   font-size: 16px; font-weight: 300; outline: none; flex: 1; min-width: 120px; padding: 4px 0;
 }
 #note-title-inp::placeholder { color: var(--text-3); }
-.tb-sep { width: 1px; height: 18px; background: var(--border); margin: 0 6px; flex-shrink: 0; }
+.tb-sep { width: 1px; height: 16px; background: var(--border); margin: 0 4px; flex-shrink: 0; }
 .tb-btn {
   background: none; border: none; color: var(--text-2); width: 28px; height: 28px;
   border-radius: 5px; cursor: pointer; font-family: var(--mono); font-size: 12px;
   display: flex; align-items: center; justify-content: center; transition: all .12s; flex-shrink: 0;
 }
 .tb-btn:hover { background: var(--surface2); color: var(--text); }
+/* Font size select */
+.tb-select-wrap {
+  position: relative; display: flex; align-items: center; flex-shrink: 0;
+}
+.tb-select {
+  appearance: none; -webkit-appearance: none;
+  background: none; border: 1px solid var(--border); border-radius: 5px;
+  color: var(--text-2); font-family: var(--mono); font-size: 11px;
+  padding: 3px 20px 3px 7px; cursor: pointer; outline: none;
+  transition: border-color .12s, color .12s;
+}
+.tb-select:hover, .tb-select:focus { border-color: var(--border2); color: var(--text); }
+.tb-select option { background: var(--surface2); color: var(--text); }
+.tb-select-icon {
+  position: absolute; right: 5px; top: 50%; transform: translateY(-50%);
+  color: var(--text-3); font-size: 9px; pointer-events: none;
+}
+/* Color picker wrapper — dùng position:relative để popup không tràn */
+.tb-pop-wrap { position: relative; display: flex; align-items: center; flex-shrink: 0; }
 .save-indicator { font-size: 11px; color: var(--text-3); transition: color .2s; }
 .save-indicator.saving { color: var(--accent); }
 .save-indicator.saved  { color: var(--green); }
@@ -274,17 +296,17 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
 
 /* ===== COLOR / HIGHLIGHT PICKER ===== */
 .color-picker-pop {
-  position: absolute; top: calc(100% + 6px); left: 0;
+  position: fixed; /* fixed thay vì absolute để không bị clip bởi overflow:hidden của toolbar */
   background: var(--surface2); border: 1px solid var(--border2);
-  border-radius: 10px; padding: 10px; z-index: 200;
-  box-shadow: 0 8px 32px rgba(0,0,0,.5);
-  display: none; flex-direction: column; gap: 8px; min-width: 228px;
+  border-radius: 10px; padding: 10px; z-index: 300;
+  box-shadow: 0 8px 32px rgba(0,0,0,.6);
+  display: none; flex-direction: column; gap: 8px; width: 236px;
 }
 .color-picker-pop.open { display: flex; }
 .color-picker-pop label {
   font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 1px;
 }
-.color-swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+.color-swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
 .swatch {
   width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent;
   cursor: pointer; transition: transform .12s, border-color .12s;
@@ -484,26 +506,36 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
         <div class="empty-hint">Chọn hoặc tạo ghi chú mới</div>
       </div>
       <div id="editor-panel">
-        <div class="toolbar">
+        <!-- TOOLBAR ROW 1: Title -->
+        <div class="toolbar toolbar-title-row">
           <input id="note-title-inp" placeholder="Tiêu đề..."/>
+        </div>
+        <!-- TOOLBAR ROW 2: Format buttons -->
+        <div class="toolbar toolbar-fmt-row">
+          <!-- Bold / Italic / Strikethrough -->
+          <button class="tb-btn" data-cmd="bold"           title="In đậm (Ctrl+B)"><b>B</b></button>
+          <button class="tb-btn" data-cmd="italic"         title="In nghiêng (Ctrl+I)"><i>I</i></button>
+          <button class="tb-btn" data-cmd="strikethrough"  title="Gạch ngang"><s>S</s></button>
           <div class="tb-sep"></div>
-          <button class="tb-btn" data-cmd="bold"                title="Bold"><b>B</b></button>
-          <button class="tb-btn" data-cmd="italic"              title="Italic"><i>I</i></button>
-          <button class="tb-btn" data-cmd="underline"           title="Underline"><u style="text-underline-offset:2px">U</u></button>
-          <div class="tb-sep"></div>
-          <button class="tb-btn" data-cmd="h1"                  title="Heading 1">H1</button>
-          <button class="tb-btn" data-cmd="h2"                  title="Heading 2">H2</button>
-          <button class="tb-btn" data-cmd="h3"                  title="Heading 3">H3</button>
-          <div class="tb-sep"></div>
-          <button class="tb-btn" data-cmd="insertUnorderedList" title="Bullet">•≡</button>
-          <button class="tb-btn" data-cmd="insertOrderedList"   title="Numbered">1≡</button>
-          <button class="tb-btn" data-cmd="blockquote"          title="Blockquote">❝</button>
-          <button class="tb-btn" data-cmd="link"                title="Link">↗</button>
+          <!-- Font size -->
+          <div class="tb-select-wrap" title="Cỡ chữ">
+            <select id="sel-fontsize" class="tb-select">
+              <option value="10px">10</option>
+              <option value="12px">12</option>
+              <option value="14px" selected>14</option>
+              <option value="16px">16</option>
+              <option value="18px">18</option>
+              <option value="22px">22</option>
+              <option value="28px">28</option>
+              <option value="36px">36</option>
+            </select>
+            <span class="tb-select-icon">▾</span>
+          </div>
           <div class="tb-sep"></div>
           <!-- Màu chữ -->
-          <div style="position:relative">
+          <div class="tb-pop-wrap">
             <button class="tb-btn-color" id="btn-fgcolor" title="Màu chữ">
-              <span style="font-size:13px;font-weight:600">A</span>
+              <span style="font-size:13px;font-weight:700;line-height:1">A</span>
               <div class="color-underline" id="fgcolor-bar" style="background:#5b9cf6"></div>
             </button>
             <div class="color-picker-pop" id="pop-fgcolor">
@@ -512,9 +544,9 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
             </div>
           </div>
           <!-- Highlight -->
-          <div style="position:relative">
+          <div class="tb-pop-wrap">
             <button class="tb-btn-color" id="btn-bgcolor" title="Highlight">
-              <span style="font-size:13px">▐</span>
+              <span style="font-size:15px;line-height:1">▐</span>
               <div class="color-underline" id="bgcolor-bar" style="background:#fbbf24"></div>
             </button>
             <div class="color-picker-pop" id="pop-bgcolor">
@@ -522,6 +554,13 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); font
               <div class="color-swatches" id="sw-bg"></div>
             </div>
           </div>
+          <div class="tb-sep"></div>
+          <!-- Link & Upload image -->
+          <button class="tb-btn" data-cmd="link"        title="Chèn link">↗</button>
+          <button class="tb-btn" data-cmd="uploadImage" title="Chèn ảnh">🖼</button>
+        </div>
+        <!-- Hidden file input for image upload -->
+        <input type="file" id="img-file-inp" accept="image/*" style="display:none"/>
         </div>
         <div id="editor-wrap">
           <div id="editor" contenteditable="true" spellcheck="false"></div>
@@ -832,165 +871,210 @@ document.getElementById('note-title-inp').addEventListener('input', triggerSave)
 document.getElementById('editor').addEventListener('input', triggerSave);
 
 // ===== TOOLBAR HANDLERS =====
-document.querySelectorAll('.tb-btn').forEach(btn => {
-  btn.addEventListener('mousedown', e => {
-    e.preventDefault(); // Giữ focus vào editor, không mất selection
-    const cmd = btn.dataset.cmd;
-    const editor = document.getElementById('editor');
+(function() {
+  const editor = document.getElementById('editor');
+
+  // Lưu lại selection trước khi mở popup/prompt
+  let savedRange = null;
+  function saveSelection() {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0 && editor.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+      savedRange = sel.getRangeAt(0).cloneRange();
+    }
+  }
+  function restoreSelection() {
+    if (!savedRange) return;
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(savedRange);
+  }
+
+  // Lưu selection khi editor mất focus
+  editor.addEventListener('blur', saveSelection);
+
+  // Font size select — dùng mousedown để lưu selection trước
+  const selFs = document.getElementById('sel-fontsize');
+  selFs.addEventListener('mousedown', saveSelection);
+  selFs.addEventListener('change', () => {
+    restoreSelection();
     editor.focus();
-
-    // Bold / Italic / Underline / danh sách — execCommand chuẩn
-    if (['bold','italic','underline','insertUnorderedList','insertOrderedList'].includes(cmd)) {
-      document.execCommand(cmd, false, null);
-      triggerSave();
-      return;
-    }
-
-    // Heading H1 / H2 / H3
-    if (['h1','h2','h3'].includes(cmd)) {
-      const sel = window.getSelection();
-      if (!sel || sel.rangeCount === 0) return;
-      const range = sel.getRangeAt(0);
-      let block = range.commonAncestorContainer;
-      if (block.nodeType === Node.TEXT_NODE) block = block.parentElement;
-      // Leo lên đến con trực tiếp của editor, nhưng DỪNG nếu thoát khỏi editor
-      while (block.parentElement && block.parentElement !== editor) {
-        block = block.parentElement;
-        if (!editor.contains(block)) return; // cursor không trong editor → bỏ qua
-      }
-      if (!editor.contains(block) || block === editor) return; // kiểm tra lần cuối
-      const tag = cmd.toUpperCase();
-      if (block.tagName === tag) {
-        const p = document.createElement('p');
-        p.innerHTML = block.innerHTML;
-        block.replaceWith(p);
-      } else {
-        const h = document.createElement(tag);
-        h.innerHTML = block.innerHTML;
-        block.replaceWith(h);
-      }
-      triggerSave();
-      return;
-    }
-
-    // Blockquote
-    if (cmd === 'blockquote') {
-      const sel = window.getSelection();
-      if (!sel || sel.rangeCount === 0) return;
-      const range = sel.getRangeAt(0);
-      let block = range.commonAncestorContainer;
-      if (block.nodeType === Node.TEXT_NODE) block = block.parentElement;
-      // Leo lên đến con trực tiếp của editor, nhưng DỪNG nếu thoát khỏi editor
-      while (block.parentElement && block.parentElement !== editor) {
-        block = block.parentElement;
-        if (!editor.contains(block)) return;
-      }
-      if (!editor.contains(block) || block === editor) return;
-      if (block.tagName === 'BLOCKQUOTE') {
-        const p = document.createElement('p');
-        p.innerHTML = block.innerHTML;
-        block.replaceWith(p);
-      } else {
-        const bq = document.createElement('blockquote');
-        bq.innerHTML = block.innerHTML;
-        block.replaceWith(bq);
-      }
-      triggerSave();
-      return;
-    }
-
-    // Link
-    if (cmd === 'link') {
-      const sel = window.getSelection();
-      const selectedText = sel ? sel.toString().trim() : '';
-      const url = prompt('Nhập URL:', 'https://');
-      if (!url || url === 'https://') return;
-      if (selectedText) {
-        document.execCommand('createLink', false, url);
-        editor.querySelectorAll('a[href="' + url + '"]').forEach(a => a.target = '_blank');
-      } else {
-        const a = document.createElement('a');
-        a.href = url; a.target = '_blank'; a.textContent = url;
-        const range = sel.getRangeAt(0);
-        range.deleteContents();
-        range.insertNode(a);
-      }
-      triggerSave();
-      return;
-    }
-  });
-});
-
-// ===== COLOR / HIGHLIGHT PICKER =====
-const FG_COLORS = [
-  '#f87171','#ef4444','#fb923c','#f97316',
-  '#fbbf24','#eab308','#4ade80','#22c55e',
-  '#34d399','#10b981','#38bdf8','#0ea5e9',
-  '#818cf8','#6366f1','#e879f9','#d946ef',
-  '#f9a8d4','#fb7185','#ffffff','#94a3b8'
-];
-const BG_COLORS = [
-  'rgba(248,113,113,.4)','rgba(239,68,68,.35)',
-  'rgba(251,146,60,.4)','rgba(249,115,22,.35)',
-  'rgba(251,191,36,.45)','rgba(234,179,8,.4)',
-  'rgba(74,222,128,.35)','rgba(34,197,94,.3)',
-  'rgba(52,211,153,.35)','rgba(16,185,129,.3)',
-  'rgba(56,189,248,.35)','rgba(14,165,233,.3)',
-  'rgba(129,140,248,.35)','rgba(99,102,241,.3)',
-  'rgba(232,121,249,.35)','rgba(217,70,239,.3)',
-  'rgba(249,168,212,.35)','rgba(251,113,133,.3)',
-  'rgba(255,255,255,.18)','rgba(148,163,184,.28)'
-];
-
-function buildSwatches(containerId, colors, applyFn, barId) {
-  const wrap = document.getElementById(containerId);
-  const clear = document.createElement('div');
-  clear.className = 'swatch clear'; clear.title = 'Xóa màu'; clear.textContent = '✕';
-  clear.addEventListener('mousedown', e => { e.preventDefault(); applyFn(null); closeAllPickers(); });
-  wrap.appendChild(clear);
-  colors.forEach(color => {
-    const s = document.createElement('div');
-    s.className = 'swatch'; s.style.background = color; s.title = color;
-    s.addEventListener('mousedown', e => {
-      e.preventDefault();
-      applyFn(color);
-      document.getElementById(barId).style.background = color;
-      closeAllPickers();
+    document.execCommand('fontSize', false, '7'); // placeholder size
+    // Tìm các span vừa tạo ra và gán font-size thực
+    editor.querySelectorAll('font[size="7"]').forEach(el => {
+      const span = document.createElement('span');
+      span.style.fontSize = selFs.value;
+      span.innerHTML = el.innerHTML;
+      el.replaceWith(span);
     });
-    wrap.appendChild(s);
+    triggerSave();
   });
-}
 
-function closeAllPickers() {
-  document.getElementById('pop-fgcolor').classList.remove('open');
-  document.getElementById('pop-bgcolor').classList.remove('open');
-}
+  // Xử lý từng nút .tb-btn
+  document.querySelectorAll('.tb-btn').forEach(btn => {
+    btn.addEventListener('mousedown', e => {
+      e.preventDefault();
+      restoreSelection();
+      editor.focus();
+      const cmd = btn.dataset.cmd;
 
-buildSwatches('sw-fg', FG_COLORS, color => {
-  if (color) document.execCommand('foreColor', false, color);
-  else document.execCommand('removeFormat', false, null);
-}, 'fgcolor-bar');
+      // --- Bold / Italic / Strikethrough ---
+      if (cmd === 'bold')          { document.execCommand('bold',          false, null); triggerSave(); return; }
+      if (cmd === 'italic')        { document.execCommand('italic',        false, null); triggerSave(); return; }
+      if (cmd === 'strikethrough') { document.execCommand('strikeThrough', false, null); triggerSave(); return; }
 
-buildSwatches('sw-bg', BG_COLORS, color => {
-  if (color) document.execCommand('hiliteColor', false, color);
-  else document.execCommand('hiliteColor', false, 'transparent');
-}, 'bgcolor-bar');
+      // --- Link ---
+      if (cmd === 'link') {
+        saveSelection();
+        const sel = window.getSelection();
+        const selectedText = sel ? sel.toString().trim() : '';
+        const url = prompt('Nhập URL:', 'https://');
+        restoreSelection();
+        editor.focus();
+        if (!url || url === 'https://') return;
+        if (selectedText) {
+          document.execCommand('createLink', false, url);
+          editor.querySelectorAll('a').forEach(a => { if (a.href === url) a.target = '_blank'; });
+        } else {
+          const a = document.createElement('a');
+          a.href = url; a.target = '_blank'; a.textContent = url;
+          const sel2 = window.getSelection();
+          if (sel2 && sel2.rangeCount) {
+            const r = sel2.getRangeAt(0);
+            r.deleteContents(); r.insertNode(a);
+            r.setStartAfter(a); r.collapse(true);
+            sel2.removeAllRanges(); sel2.addRange(r);
+          }
+        }
+        triggerSave(); return;
+      }
 
-document.getElementById('btn-fgcolor').addEventListener('click', e => {
-  e.stopPropagation();
-  const pop = document.getElementById('pop-fgcolor');
-  document.getElementById('pop-bgcolor').classList.remove('open');
-  pop.classList.toggle('open');
-});
-document.getElementById('btn-bgcolor').addEventListener('click', e => {
-  e.stopPropagation();
-  const pop = document.getElementById('pop-bgcolor');
-  document.getElementById('pop-fgcolor').classList.remove('open');
-  pop.classList.toggle('open');
-});
-document.addEventListener('click', closeAllPickers);
-document.getElementById('pop-fgcolor').addEventListener('click', e => e.stopPropagation());
-document.getElementById('pop-bgcolor').addEventListener('click', e => e.stopPropagation());
+      // --- Upload image ---
+      if (cmd === 'uploadImage') {
+        saveSelection();
+        document.getElementById('img-file-inp').click();
+        return;
+      }
+    });
+  });
+
+  // Xử lý file upload ảnh
+  document.getElementById('img-file-inp').addEventListener('change', async function() {
+    const file = this.files[0];
+    if (!file) return;
+    this.value = '';
+    restoreSelection();
+    editor.focus();
+    const ph = document.createElement('div');
+    ph.className = 'img-uploading';
+    ph.textContent = '⏳ Đang tải ảnh lên Drive...';
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount) {
+      const r = sel.getRangeAt(0); r.collapse(false); r.insertNode(ph);
+    } else { editor.appendChild(ph); }
+    try {
+      const b64 = await blobToB64(file);
+      const pure = b64.split(',')[1];
+      const res = await api({ action: 'uploadImage', base64: pure, mimeType: file.type, filename: 'img_'+Date.now()+'.png' });
+      const img = document.createElement('img');
+      img.src = res.url; img.setAttribute('referrerpolicy','no-referrer');
+      ph.replaceWith(img);
+      toast('✓ Đã chèn ảnh');
+    } catch(err) {
+      ph.textContent = '✕ Lỗi: ' + err.message;
+      toast('Lỗi ảnh: ' + err.message);
+    }
+    triggerSave();
+  });
+
+  // ===== COLOR / HIGHLIGHT PICKER =====
+  const FG_COLORS = [
+    '#f87171','#ef4444','#fb923c','#f97316',
+    '#fbbf24','#eab308','#4ade80','#22c55e',
+    '#34d399','#10b981','#38bdf8','#0ea5e9',
+    '#818cf8','#6366f1','#e879f9','#d946ef',
+    '#f9a8d4','#fb7185','#ffffff','#94a3b8'
+  ];
+  const BG_COLORS = [
+    'rgba(248,113,113,.4)','rgba(239,68,68,.35)',
+    'rgba(251,146,60,.4)','rgba(249,115,22,.35)',
+    'rgba(251,191,36,.45)','rgba(234,179,8,.4)',
+    'rgba(74,222,128,.35)','rgba(34,197,94,.3)',
+    'rgba(52,211,153,.35)','rgba(16,185,129,.3)',
+    'rgba(56,189,248,.35)','rgba(14,165,233,.3)',
+    'rgba(129,140,248,.35)','rgba(99,102,241,.3)',
+    'rgba(232,121,249,.35)','rgba(217,70,239,.3)',
+    'rgba(249,168,212,.35)','rgba(251,113,133,.3)',
+    'rgba(255,255,255,.18)','rgba(148,163,184,.28)'
+  ];
+
+  function positionPop(btn, pop) {
+    // Tính toán vị trí popup theo fixed, tránh tràn màn hình
+    const r = btn.getBoundingClientRect();
+    const popW = 236, popH = 180;
+    let left = r.left;
+    let top  = r.bottom + 6;
+    if (left + popW > window.innerWidth - 8) left = window.innerWidth - popW - 8;
+    if (left < 8) left = 8;
+    if (top + popH > window.innerHeight - 8) top = r.top - popH - 6;
+    pop.style.left = left + 'px';
+    pop.style.top  = top  + 'px';
+  }
+
+  function closeAllPickers() {
+    document.getElementById('pop-fgcolor').classList.remove('open');
+    document.getElementById('pop-bgcolor').classList.remove('open');
+  }
+
+  function buildSwatches(containerId, colors, applyFn, barId) {
+    const wrap = document.getElementById(containerId);
+    const clear = document.createElement('div');
+    clear.className = 'swatch clear'; clear.title = 'Xóa màu'; clear.textContent = '✕';
+    clear.addEventListener('mousedown', e => { e.preventDefault(); restoreSelection(); editor.focus(); applyFn(null); closeAllPickers(); triggerSave(); });
+    wrap.appendChild(clear);
+    colors.forEach(color => {
+      const s = document.createElement('div');
+      s.className = 'swatch'; s.style.background = color;
+      s.addEventListener('mousedown', e => {
+        e.preventDefault(); restoreSelection(); editor.focus();
+        applyFn(color);
+        document.getElementById(barId).style.background = color;
+        closeAllPickers(); triggerSave();
+      });
+      wrap.appendChild(s);
+    });
+  }
+
+  buildSwatches('sw-fg', FG_COLORS, color => {
+    if (color) document.execCommand('foreColor', false, color);
+    else document.execCommand('removeFormat', false, null);
+  }, 'fgcolor-bar');
+
+  buildSwatches('sw-bg', BG_COLORS, color => {
+    if (color) document.execCommand('hiliteColor', false, color);
+    else document.execCommand('hiliteColor', false, 'transparent');
+  }, 'bgcolor-bar');
+
+  document.getElementById('btn-fgcolor').addEventListener('mousedown', e => {
+    e.preventDefault(); saveSelection();
+    const pop = document.getElementById('pop-fgcolor');
+    const isOpen = pop.classList.contains('open');
+    closeAllPickers();
+    if (!isOpen) { positionPop(e.currentTarget, pop); pop.classList.add('open'); }
+  });
+  document.getElementById('btn-bgcolor').addEventListener('mousedown', e => {
+    e.preventDefault(); saveSelection();
+    const pop = document.getElementById('pop-bgcolor');
+    const isOpen = pop.classList.contains('open');
+    closeAllPickers();
+    if (!isOpen) { positionPop(e.currentTarget, pop); pop.classList.add('open'); }
+  });
+
+  document.addEventListener('mousedown', e => {
+    if (!e.target.closest('#pop-fgcolor, #pop-bgcolor, #btn-fgcolor, #btn-bgcolor')) {
+      closeAllPickers();
+    }
+  });
+})();
 
 // ===== MOBILE DRAWER =====
 function openSidebar() {
